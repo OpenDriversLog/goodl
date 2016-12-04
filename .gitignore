@@ -19,7 +19,6 @@ goodl
 /tests/acceptance/img/*.png<
 *.swp
 *.mp3
-*.pdf
 
 # folder with secrets (ssh key, passwords, api-token)
 DONTADDTOGIT/
