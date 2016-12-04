@@ -1,0 +1,72 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../edits/car-edit.html">
+<link rel="import" href="../odl/odl-theme.html">
+<dom-module id="loading-spinner">
+    <template>
+        <style include="odl-styles"></style>
+        <paper-spinner style="z-index:9001; padding-top: 2px; " active="{{loading}}" id="spin" alt="Lade Daten..."></paper-spinner>
+
+    </template>
+
+    <script>
+
+        var that;
+        Polymer({
+            is: "loading-spinner",
+
+
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                stack: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                loading: {
+                    type : Boolean,
+                    value : false,
+                    notify:true
+                }
+            },
+            observers : [
+                "_stackChanged(stack.*)"
+            ],
+            _stackChanged : function() {
+                if (this.stack.length>0) {
+                    this.loading = true;
+                }  else {
+                    this.loading = false;
+                }
+            },
+            addLoader : function(tag) {
+                this.push("stack",tag);
+            },
+            removeLoader : function(tag) {
+                var idx = this.stack.indexOf(tag);
+                if (idx >-1) {
+                    this.splice("stack", idx, 1)
+                }
+            }
+
+        });
+    </script>
+
+</dom-module>

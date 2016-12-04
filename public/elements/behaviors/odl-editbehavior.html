@@ -1,0 +1,407 @@
+
+<script>
+    var OdlBehaviors = OdlBehaviors || {};
+
+    /**
+     * This enables a polymer element to be edited with our default AJAX-style.
+     *
+     * The easiest way to setup this is copying an existing element, e.g. "odl-editbehaviorexample.html"
+     * and replace "car" with "yourItemName" and "Car" with "YourItemName"  (case sensitive!).
+     * Then you only need to update the contents of the form, the getNew- and the getItemDesc-Method
+     * and it should work.
+     *
+     *
+     *
+     * More detailed instructions :
+     *
+     * Please make sure to fill all public properties in the ready-event when using this.
+     * You need to have a property called "internal{upperDtoName}" and a property
+     * called "{lowerDtoName}", set up like this :
+     *
+     car: {
+       type: Object,
+       notify: true,
+       observer:'_dtoChanged'
+       },
+     internalCar: {
+       type: Object,
+       notify:true
+       }
+     *
+     * Also don't forget to handle the events : `on-deleted`, `on-created`, `on-updated`, `on-canceled`, `on-back`
+     *
+     * You need to define the methods `getNew()`, returning an empty item object
+     * and the method `getItemDesc()` returning a user-friendly description of your object,
+     * e.g. _Kontakt Christoph Sonntag_ or _Auto mit dem Kennzeichen FG-CS 629_
+     *
+     * Also add this to the top of your template :
+     * <delete-dialog id="deleteDialog"></delete-dialog>
+     * <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+     *
+     * If your template includes an `iron-form` with id="formEdit"+upperDtoName, this form
+     * will be validated before saving.
+     *
+     * Don't forget to import the dialogs and
+     * try to put your ids most near to the odl-editbehaviorexample.html (e.g. "carEdit" -> "yourItemNameEdit")
+     *
+     * Works best together inside a OdlListBehavior.
+     *
+     */
+
+    OdlBehaviors.OdlEditBehavior = {
+        properties: {
+            ajaxDeleter: { // The iron-ajax control for deleting entries
+                type: Object,
+                observer: '_ajaxDeleterChanged'
+            },
+            ajaxCreator: { // The iron-ajax control for creating entries
+                type: Object,
+                observer: '_ajaxCreatorChanged'
+            },
+            ajaxUpdater: { // The iron-ajax control for updating entries
+                type: Object,
+                observer: '_ajaxUpdaterChanged'
+            },
+            upperDtoName: { // The upper case name of the item object, e.g. "Car"
+                type: String,
+                observer: "_upperDtoNameChanged"
+            },
+            lowerDtoName: String, // The lower case name of the item object, e.g. "car"
+            _internalDtoName: String, // The internal item object name, e.g. "internalCar"
+            loading: { // True when an update is in progress
+                type:Boolean,
+                notify:true,
+                value:false
+            },
+            saveDisabled: Boolean,
+            cancelDisabled: Boolean,
+            route: {type:Object, notify: true},
+            isMobile: Boolean,
+            showUpdatedToast: {type:Boolean, value:true},
+            t:Object
+
+        },
+        ifTrue: function(isTrue,True,False) {
+            if(isTrue)  return True;
+            return False;
+        },
+        /**
+         * Returns true if there are any unsaved changes
+         * @returns {boolean}
+         */
+        hasPendingChange: function() {
+            var _new = this[this._internalDtoName];
+            var old = this[this.lowerDtoName];
+            if (typeof(this.polish) === 'function') {
+                _new = this.polish(_new);
+                old = this.polish(old);
+            }
+            return  JSON.stringify(_new) != JSON.stringify(old);
+        },
+        /**
+         * Attached-event => initialise empty DTO to prevent null pointer exceptions
+         */
+        attached:function(){
+            if(this._internalDtoName && (this[this._internalDtoName]==undefined || $.isEmptyObject(this[this._internalDtoName]))) {
+                this[this._internalDtoName] = this.getNew();
+            }
+        },
+        /**
+         * Fires back-event to be handled by parent object
+         */
+        back: function() {
+            this.fire('back',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName]});
+        },
+
+        /**
+         * Cancels editing the current item, resetting all values
+         * Fires canceled-event to be handled by parent object
+         */
+        cancelEdit: function() {
+            this[this._internalDtoName] = $.extend(true, {}, this[this.lowerDtoName]);
+            this.fire('canceled',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName]});
+        },
+
+        /**
+         * Deletes an item without asking if the user is sure
+         * @param dtoToDelete The item to delete
+         * @param lowerDtoNameToDelete The lower-case name of the item (e.g. "car")
+         */
+        delete_Definitely: function(dtoToDelete,lowerDtoNameToDelete) {
+            if(dtoToDelete.Id<1) {
+                // dto was not even created - just fire it was deleted
+                this.fire('deleted',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName]});
+            } else {
+                this.loading=true;
+                this.ajaxDeleter.body[lowerDtoNameToDelete] = JSON.stringify(dtoToDelete);
+                load(this.lowerDtoName);
+                this.ajaxDeleter.generateRequest();
+            }
+        },
+
+        /**
+         * Deletes the currently selected Item, with asking the user for confirmation
+         */
+        delete_item: function(e) {
+            if(e) e.stopPropagation();
+            var that = this;
+            var dtoToDelete = that[that.lowerDtoName];
+
+            var lowerDtoNameToDelete = that.lowerDtoName;
+            if (that.getItemDesc) {
+                that.$.deleteDialog.itemDesc = that.getItemDesc(dtoToDelete);
+                that.$.deleteDialog.key = that.lowerDtoName+"_"+dtoToDelete.Id;
+            } else {
+                showError("Das Löschen ist derzeit leider nicht möglich. Bitte geben Sie uns Bescheid.");
+                console.error("No getItemDesc defined!!!");
+            }
+            that.$.deleteDialog.deleteFunc = function(){
+                that.delete_Definitely(dtoToDelete,lowerDtoNameToDelete);
+            };
+            that.$.deleteDialog.cancelFunc = function(){
+                that.fire('canceled',{type:that.lowerDtoName,updatedObject:that[that.lowerDtoName]});
+            };
+            this.async(function()
+            {
+                that.$.deleteDialog.show();
+            });
+
+        },
+
+        /**
+         * Gets the item if not undefined, otherwise an empty string
+         * @param item
+         * @returns {*}
+         */
+        getValString: function(item) {
+            if (item === undefined) return ""
+            return item;
+        },
+
+        /**
+         * tries to validate iron-form found via #formEdit+'_itemNameLower'
+         * saves the current changes for edit & create (create if Id < 1)
+         * calls polish(this[_internalDtoName]) before saving, if your element
+         * implements such a function, e.g. useful for casting types
+         */
+        saveEdit: function() {
+            var form = this.$$('#formEdit'+this.upperDtoName);
+            if (form != undefined) {
+                if (!form.validate()) {
+                    showWarning('Änderungen wurden nicht gespeichert. Bitte füllen Sie das Formular vollständig und korrekt aus.');
+                    this.loading = false;
+                    return;
+                }
+            }
+
+            if (typeof(this.polish) === 'function') {
+                this.polish(this[this._internalDtoName]);
+            }
+            this.saveDisabled = true;
+            this.cancelDisabled = true;
+
+            this.saveItem(this[this._internalDtoName]);
+
+        },
+        /**
+         * Saves a given dto-item
+         */
+        saveItem: function(item) {
+            load(this.lowerDtoName);
+            this.loading=true;
+            if (item.Id < 1 || item.Id == undefined) {
+                this.ajaxCreator.body[this.lowerDtoName] = JSON.stringify(item);
+                this.ajaxCreator.generateRequest();
+            } else {
+                this.ajaxUpdater.body[this.lowerDtoName] = JSON.stringify(item);
+                this.ajaxUpdater.generateRequest();
+            }
+        },
+        /**
+         * Copies the new item object to our internal object that's bound to the controls
+         * and enables save/cancel
+         * @private
+         */
+        _dtoChanged:function() {
+            this[this._internalDtoName] = $.extend(true, {}, this[this.lowerDtoName]);
+            this.saveDisabled = false;
+            this.cancelDisabled = false;
+        },
+
+        /**
+         * calculates _internalDtoName
+         * @private
+         */
+        _upperDtoNameChanged: function() {
+            this._internalDtoName = "internal" + this.upperDtoName;
+        },
+
+        /**
+         * Adds listener to iron-ajax ajaxDeleter
+         * @private
+         */
+        _ajaxDeleterChanged: function() {
+            var that = this;
+            this.ajaxDeleter.set("url",getReplacedAjaxUri(this.ajaxDeleter.url));
+            this._addODLListener(this.ajaxDeleter,function(request) {that._handleAjaxDeleterResponse(request);});
+        },
+
+        /**
+         * Adds listener to iron-ajax ajaxUpdater
+         * @private
+         */
+        _ajaxUpdaterChanged: function() {
+            this.ajaxUpdater.set("url",getReplacedAjaxUri(this.ajaxUpdater.url));
+            var that = this;
+            this._addODLListener(this.ajaxUpdater,function(request) {that._handleAjaxUpdaterResponse(request);});
+        },
+
+        /**
+         * Adds listener to iron-ajax ajaxUpdater
+         * @private
+         */
+        _ajaxCreatorChanged: function() {
+            this.ajaxCreator.set("url",getReplacedAjaxUri(this.ajaxCreator.url));
+            var that = this;
+            this._addODLListener(this.ajaxCreator,function(request) {that._handleAjaxCreatorResponse(request);});
+        },
+
+        /**
+         * Adds given listener & generic error-listener to iron-ajax objects
+         * @private
+         */
+        _addODLListener: function(updater,handler) {
+            if(updater != undefined) {
+                updater.addEventListener("response",handler);
+                updater.addEventListener("error",this._handleAjaxError);
+            }
+        },
+
+        /**
+         * Handles the deleted-response, showing error if something failed.
+         * Otherwise fires "deleted"-event to be handled by parent
+         * @param request
+         * @private
+         */
+        _handleAjaxDeleterResponse: function (request) {
+            unload(this.lowerDtoName);
+            if(request.detail.response == null) {
+                showError(T("Error") + ": " + request.detail.statusText);
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            }
+            else if(request.detail.response.Success == false) {
+                showResultErrors(request.detail.response,this.t);
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+
+            } else {
+                showToast(T("deleteSuccessful"));
+                this.fire('deleted',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            }
+            this.loading = false;
+        },
+
+        /**
+         * Handles the updated-response, showing error if something failed.
+         * Otherwise fires "updated"-event to be handled by parent
+         * @param request
+         * @private
+         */
+        _handleAjaxUpdaterResponse: function (request) {
+            unload(this.lowerDtoName);
+            if(request.detail.response == null) {
+                showError(T("Error") + ": " + request.detail.statusText);
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            }
+            else if(request.detail.response.Success == false) {
+                showResultErrors(request.detail.response,this.t);
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            } else {
+                if(this[this.lowerDtoName] && this[this.lowerDtoName].Id==request.detail.response.Id) {
+                    var dto;
+                    if(request.detail.response.UpdatedDto!=undefined) {
+                        dto = request.detail.response.UpdatedDto;
+                    }
+                    else {
+                        dto = this[this._internalDtoName];
+                    }
+                    if (typeof(this.initItem) === 'function') {
+                        dto = this.initItem(dto);
+                    }
+                    this[this._internalDtoName] = dto;
+                    this[this.lowerDtoName] = $.extend(true, {}, dto);
+                    this.fire('updated',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+                } else {
+                    this.fire('updated',{type:this.lowerDtoName,updatedObject:request.detail.response.UpdatedDto,response:request.detail.response})
+                }
+                if(this.showUpdatedToast) {
+                    var ut = T("updateSuccessful");
+                    var that = this;
+                    var resp = request.detail.response;
+                    if (resp && resp.Changes!==undefined) {
+                        ut += ": "
+                        $.each(resp.Changes,function(a,b) {
+                            $.each(b.Changes,function(k,v) {
+                                var txt = "; ";
+                                if (typeof(that.translateKeyValue) === 'function') {
+                                    var res = that.translateKeyValue(k,v.OldVal);
+                                    v.OldVal = res.v;
+                                    res = that.translateKeyValue(k,v.NewVal);
+                                    v.NewVal = res.v;
+                                    k = res.k;
+                                }
+                                else if (that.t)
+                                    k = getTransMsg(k, that.t);
+                                else k = getTransMsg(k, main.T);
+                                txt += k+ ": " + v.OldVal + " -> " + v.NewVal;
+                                ut += txt;
+                            });
+
+                        });
+                    }
+                    showToast(ut)
+                }
+
+            }
+
+            this.saveDisabled = false;
+            this.cancelDisabled = false;
+            this.loading = false;
+        },
+
+        /**
+         * Handles the created-response, showing error if something failed.
+         * Otherwise fires "created"-event to be handled by parent
+         * @param request
+         * @private
+         */
+        _handleAjaxCreatorResponse: function (request) {
+            unload(this.lowerDtoName);
+            if(request.detail.response == null) {
+                showError(T("Error") + ": " + request.detail.statusText);
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            }
+            else if(request.detail.response.Success == false) {
+                showResultErrors(request.detail.response,this.t);
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            } else {
+                var dto = this[this._internalDtoName];
+                dto.Id = request.detail.response.LastKey;
+                if (typeof(this.initItem) === 'function') {
+                    dto = this.initItem(dto);
+                }
+                this[this._internalDtoName] = dto;
+                this[this.lowerDtoName] = $.extend(true, {}, dto);
+
+                this.fire('created',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+                showToast(T("createSuccessful"));
+            }
+            this.saveDisabled = false;
+            this.cancelDisabled = false;
+            this.loading = false;
+        },
+        _handleAjaxError: function(e) {
+            handleAjaxError(e,this);
+        }
+
+    };
+</script>

@@ -1,0 +1,55 @@
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icon/iron-icon.html">
+<link rel="import" href="odl-theme.html">
+<dom-module id="top-nav">
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            .menu-element { margin-left: 1em;}
+            h5 { margin-left: 0.5em;}
+        </style>
+        <template is="dom-repeat" items="{{menuitems}}" as="group">
+            <div class="horizontal layout wrap right">
+
+                <template is="dom-repeat" items="{{group.items}}" as="menuitem" index-as="menuitem_no">
+                    <paper-item on-tap="menuSelected" href="{{menuitem.href}}" id="{{getId(menuitem)}}" class="white-text" style="cursor:pointer;">
+                        <iron-icon icon="{{menuitem.icon}}"> </iron-icon>
+                    </paper-item>
+
+                    <paper-tooltip for="{{getId(menuitem)}}"  style="z-index:9005" margin-top="0">{{menuitem.title}}</paper-tooltip>
+                </template>
+            </div>
+        </template>
+    </template>
+    <script>
+        Polymer({
+            is: "top-nav",
+            properties: {
+                menuitems: {
+                    type: Object
+                },
+                selected: {
+                    type: String
+                }
+            },
+            getId : function(item) {
+                return "topnav_"+item.key;
+            },
+            menuSelected: function(e,f,target) {
+                var href = e.model.menuitem.href;
+                //console.log(e,f,target,this,href);
+                if(href) {
+                    window.location.href = href;
+                } else {
+                    e.model.menuitem.onTap(e,f,target);
+                }
+            }
+
+        });
+
+    </script>
+
+</dom-module>

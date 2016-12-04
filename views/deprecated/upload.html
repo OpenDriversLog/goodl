@@ -1,0 +1,81 @@
+{[{define "key"}]}upload{[{end}]}
+{[{define "head"}]}
+<link rel="import" href="./public/bundledImports/upload.html">
+{[{end}]}
+{[{define "title"}]}
+{[{.T.T "upload_title"}]}
+{[{end}]}
+{[{define "navItems"}]}{[{end}]}
+{[{define "helpText"}]}
+{[{end}]}
+{[{define "content"}]}
+
+<div class="vertical layout" style="padding: 1em; margin: 1em;">
+    <paper-material elevation="1" class="odl-tertiary">
+        <h3>{[{.T.T "DidYouKnow"}]}</h3>
+        {[{.T.HTML "upload_dyk"}]}
+    </paper-material>
+
+    <paper-material elevation="1" style="padding: 1em;">
+
+        <form  id="form" method="post" action="./syncDB" enctype="multipart/form-data">
+
+            <div class="horizontal layout">
+                <div class="flex">
+                    <paper-input type="text" style="width:300px;" id="upload_key" name="upload_key" label="{[{.T.T "upload_key"}]}"></paper-input>
+                </div>
+
+                <div class="flex" style="valign:bottom;">
+                    <label for="upload_dataType">{[{.T.T "upload_type"}]}</label>
+
+                    <select class="browser-default" name="upload_dataType"  id="upload_dataType">
+                        <option value="NMEA/GPRMC" selected>NMEA/GPRMC</option>
+                        <option value="KML">KML(Google)</option>
+                        <option value="CSV">CSV</option>
+                    </select>
+                </div>
+
+                <div class="flex">
+                    <!-- <label for="upload_files"> {[{.T.T "upload_data"}]} </label> -->
+                    <paper-input style="width:300px;" type="file" title="{[{.T.T "upload_data"}]}" id="upload_files" multiple name="upload_files"></paper-input>
+                </div>
+
+            </div>
+            <!-- <label for="upload_externalData"> {[{.T.T "upload_data"}]} </label> -->
+            {[{.Data.Message}]}
+            <textarea name="upload_externalData" id="upload_externalData"  style="width:100%;" title="{[{.T.T "upload_data"}]}" class="browser-default"></textarea>
+
+            <paper-button onclick="submitForm()" id="submit" name="submit" class="right">
+                {[{.T.T "upload_add"}]}
+            </paper-button>
+        </form>
+    </paper-material>
+</div>
+{[{end}]}
+{[{define "bottomBody"}]}
+<script type ="text/javascript" src="./public/js/jquery-ui.min.js"></script>
+<script>
+    function submitForm() {
+        document.getElementById('submit').enabled = false;
+        document.getElementById('form').submit();
+        load("submitUpload");
+    }
+    $(function(){
+        var devicesResponse = {[{.Data.AvailableDevices}]};
+    var devices = devicesResponse.Result
+    var devs = []
+
+    if(devices!=undefined) {
+        $.each(devices,function(i,item){
+            devs.push(item.Description);
+        });
+    }
+
+    $('#upload_key').autocomplete({
+        source : devs
+    });
+
+    var fCount = 0;
+    });
+</script>
+{[{end}]}

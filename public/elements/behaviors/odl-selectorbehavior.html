@@ -1,0 +1,70 @@
+<link rel="import" href="../../components/iron-form-element-behavior/iron-form-element-behavior.html">
+<link rel="import" href="../../components/iron-validatable-behavior/iron-validatable-behavior.html">
+
+
+<script>
+    var OdlBehaviors = OdlBehaviors || {};
+    OdlBehaviors._OdlSelectorBehavior = {
+        properties: {
+            selectedId: {
+                type: Number,
+                value: 0,
+                notify: true,
+                observer: "_selectedIdChanged"
+            },
+            upperItemName:{type:String},
+            lowerItemName:{type:String}
+        },
+        // Overidden from Polymer.IronValidatableBehavior. Will set the `invalid`
+        // attribute automatically, which should be used for styling.
+        _getValidity: function() {
+            return !this.required || this.selectedId>=0
+        },
+        _createNew: function() {
+            this.fire("create-new",this);
+        },
+        _selectedIdChanged: function(newId,oldId) {
+            if(newId==oldId) return;
+            this.value = newId;
+            if(newId>0 && this.upperItemName!==undefined) {
+                if(newId && this["selected"+this.upperItemName] && this["selected"+this.upperItemName].Id==newId) {
+                    return;
+                }
+                var col = this[this.lowerItemName+"sById"][newId];
+                if(col != null) {
+                    this["selected"+this.upperItemName] = this[this.lowerItemName+"sById"][newId];
+                }
+
+                this.fire("selected-item-changed",this);
+            }  else {
+                if(newId == undefined || typeof(newId)!="number") return;
+                if (newId !== -1)
+                    this.set("selectedId",-1);
+                this["selected"+this.upperItemName] = undefined;
+                this.fire("selected-item-changed",this);
+            }
+
+        },
+        _itemsChanged:function() {
+            var newC = this["selected"+this.upperItemName];
+
+            if(newC != undefined) {
+                this.set("selectedId",newC.Id);
+            } else {
+                this.set("selectedId",null);
+            }
+
+        },
+        _selectedChanged: function(newC) {
+            if(newC != undefined) {
+                this.set("selectedId",newC.Id);
+            } else {
+                if(this.selectedId!==-1)
+                    this.set("selectedId",-1);
+            }
+        }
+    };
+
+    OdlBehaviors.OdlSelectorBehavior = [Polymer.IronFormElementBehavior,Polymer.IronValidatableBehavior,OdlBehaviors._OdlSelectorBehavior]
+
+</script>

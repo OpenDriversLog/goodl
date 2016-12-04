@@ -1,0 +1,359 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../sync-helpers/google-sync.html">
+
+<link rel="import" href="../behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="address-edit.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<!--
+Creating/updating a sync-object works like this :
+0) Let the user assign a custom name/description
+1) Select a Sync-Type -> toggle what is displayed (e.g. for google google-sync, for others "authentification"-selector
+2) Select authentication method (except for google)
+3) If necessary, show additional authentication fields (e.g. username, password)
+4) After click on save-button
+  - if additional authentication steps are needed :
+        - Call the <*-auth> (or in case of google google-sync) - objects signIn-Method and wait for
+            the "signin-success"-event
+        - on the signin-success-event, check if the response.detail contains a body-property and
+            assign the body from there to the body of our request (e.g. this.$.ajaxCreator.googleAuthCode="someCode")
+  - if no additional authentication steps are needed or above finished -> call this.saveEdit -> authentication will be saved
+  - when save finished (server returned response, including new synced contacts & updated trips) :
+       - update Trips & Contacts on client-side.
+
+-->
+<dom-module id="sync-edit">
+
+    <template>
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+
+        <iron-ajax id="ajaxSyncDeleter"
+                   url="../../../syncMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+        <iron-ajax id="ajaxSyncRefresher"
+                   url="../../../syncMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "refresh" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"
+                   on-response="_onRefresherReturned"
+        ></iron-ajax>
+        <iron-ajax id="ajaxSyncCreator"
+                   url="../../../syncMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxSyncUpdater"
+                   url="../../../syncMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+        <div class="vertical layout fit">
+            <paper-toolbar>
+                <paper-icon-button id="syncCard_back" enabled="{{!loading}}" icon="arrow-back" title="zurück zur Kontaktliste" on-tap="back">
+                </paper-icon-button>
+                <div class="title">[[t.syncEdit]]</div>
+                <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                <paper-icon-button id="cancelButton" enabled="{{!loading}}" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+                <paper-icon-button id="saveButton" enabled="{{!loading}}" icon="icons:save" on-tap="_saveEdit" title="Speichern" disabled$="[[_calcSaveDisabled(saveDisabled)]]"></paper-icon-button>
+            </paper-toolbar>
+
+            <paper-material id="syncEdit" class="edit_padding">
+                <div style="overflow:auto;">
+                    <form is="iron-form" id="formEditSync" method="POST">
+                        <paper-dropdown-menu attr-for-selected="sync-type"
+                                             selected="{{internalSync.Type}}" id="syncTypeSelector" label="[[t.syncType]]">
+                            <paper-menu attr-for-selected="sync-type" on-iron-select="_selectedTypeChanged"
+                                        selected="{{internalSync.Type}}" class="dropdown-content">
+                                <paper-item sync-type="google">Google / Android</paper-item>
+                                <paper-item sync-type="apple" disabled>Apple / iPhone / iPad / Mac</paper-item>
+                                <paper-item sync-type="CardDav">[[t.cardDav]]</paper-item>
+                                <paper-item sync-type="CalDav" disabled>[[t.calDav]]</paper-item>
+                            </paper-menu>
+                        </paper-dropdown-menu>
+                        <paper-dropdown-menu attr-for-selected="sync-frequency"
+                                             selected="{{internalSync.UpdateFrequency}}" id="syncFreqSelector" label="[[t.syncInterval]]">
+                            <paper-menu attr-for-selected="sync-frequency" on-iron-select="_selectedTypeChanged"
+                                        selected="{{internalSync.UpdateFrequency}}" class="dropdown-content">
+                                <paper-item sync-frequency="-1">[[t.dontSync]]</paper-item>
+                                <paper-item sync-frequency="3600">1 [[t.hour]]</paper-item>
+                                <paper-item sync-frequency="21600">6 [[t.hours]]</paper-item>
+                                <paper-item sync-frequency="43200">12 [[t.hours]]</paper-item>
+                                <paper-item sync-frequency="86400">1 [[t.day]]</paper-item>
+                                <paper-item sync-frequency="604800">7 [[t.days]]</paper-item>
+                            </paper-menu>
+                        </paper-dropdown-menu>
+                        <paper-input id="sync_edit_name" name="name" label="Beschreibung" value="{{internalSync.Name}}"></paper-input>
+                        <div hidden$="[[_isSelectedType(internalSync.Type,'google')]]">
+                            <paper-dropdown-menu attr-for-selected="auth-type"
+                                                 selected="{{selectedAuth}}"
+                                                 id="authTypeSelector" label="[[t.auth]]">
+                                <paper-menu attr-for-selected="auth-type"
+                                            selected="{{selectedAuth}}" class="dropdown-content">
+                                    <paper-item auth-type="oAuth">oAuth (Google/Android)</paper-item>
+                                    <paper-item auth-type="httpBasicAuth" disabled>Http Basic</paper-item>
+                                    <paper-item auth-type="httpDigestAuth" disabled>Http Digest</paper-item>
+                                </paper-menu>
+                            </paper-dropdown-menu>
+                        </div>
+                        <template is="dom-if" if="[[!isMobile]]" restamp>
+                            <google-sync signed-in="googleSignedIn" id="googleSync" on-signin-success="_signinSuccess" on-offline-signin-success="_offlineSigninSuccess"
+                                         t="{{t}}" hidden$="[[!_isSelectedType(internalSync.Type,'google')]]"></google-sync>
+                        </template> </form>
+                </div>
+            </paper-material>
+        </div>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "sync-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+
+            properties: {
+                sync: {
+                    type: Object,
+                    notify: true,
+                    value: {},
+                    observer: "_syncChanged"
+                },
+                internalSync: {
+                    type: Object,
+                    notify:true,
+                    value: {}
+                },
+                googleSignedIn:{
+                    type: Boolean,
+                    value : false
+                },
+                selectedAuth : {
+                    type:String,
+                    default:"oAuth"
+                },
+                t:{ type:Object,value:{} },
+                lastSaveEvent : {type:Object, value:{}},
+                isMobile: {
+                    type:Boolean,
+                    value:true
+                }
+            },
+            listeners: {
+                'created': '_resetProperties',
+                'updated': '_resetProperties',
+                'deleted': '_syncDeleted'
+            },
+            _calcSaveDisabled: function(saveDisabled) {
+                return saveDisabled;
+            },
+            _resetProperties : function() {
+                this.lastSaveEvent = {};
+                this.step1Complete = false;
+                this.$.ajaxSyncCreator.body = { action: "create" };
+                this.$.ajaxSyncUpdater.body = { action: "update" };
+                this.$.ajaxSyncDeleter.body = { action: "delete" };
+            },
+            _syncDeleted: function(e) {
+                this._resetProperties();
+                //if(e.detail.updatedObject.Type=="google") // No other way to update google-signin to know we revoked the token
+                //document.location.reload();
+            },
+            refresh: function() {
+                var form = this.$$('#formEdit'+this.upperDtoName);
+
+                if (form != undefined) {
+                    if (!form.validate()) {
+                        showWarning('Änderungen wurden nicht gespeichert! Bitte füllen Sie das Formular vollständig und korrekt aus!');
+                        this.loading=false;
+                        return;
+                    }
+                }
+
+                if (typeof(this.polish) === 'function') {
+                    this.polish(this[this._internalDtoName]);
+                }
+                this.$.saveButton.disabled = true;
+                this.$.cancelButton.disabled = true;
+
+                this.refreshItem(this[this._internalDtoName]);
+
+            },
+            polish:function(sync) {
+                if(sync.UpdateFrequency!=="" && sync.UpdateFrequency>0) {
+                    sync.UpdateFrequency = parseInt(sync.UpdateFrequency);
+                    sync.LastUpdate = parseInt(sync.LastUpdate);
+                    sync.NextUpdate = sync.LastUpdate + sync.UpdateFrequency;
+                } else {
+                    sync.NextUpdate = -1;
+                }
+            },
+            refreshItem: function(item) {
+                load(this.lowerDtoName);
+                this.loading=true;
+                this.$.ajaxSyncRefresher.body[this.lowerDtoName] = JSON.stringify(item);
+                this.$.ajaxSyncRefresher.generateRequest();
+            },
+            _isSelectedType: function(type,v) {
+                return type == v;
+            },
+            _selectedTypeChanged: function() {
+                var n = this.internalSync.Name;
+                if(n==undefined || n=="" || n =="Google / Android" || n == this.t.calDav || n == this.t.cardDav || n == "Apple / iPhone / iPad / Mac") {
+                    switch(this.internalSync.Type) {
+                        case "google" : this.set("internalSync.Name","Google / Android"); break;
+                        case "cardDav" : this.set("internalSync.Name",this.t.cardDav); break;
+                        case "calDav" : this.set("internalSync.Name",this.t.calDav); break;
+                        case "apple" : this.set("internalSync.Name","Apple / iPhone / iPad / Mac"); break;
+                        default: this.internalSync.Name="";
+
+                    }
+                }
+            },
+            getNew: function() {
+                return {
+                    "Id": -1,
+                    "Name" : "",
+                    "Type" : "",
+                    "Priority" : 0,
+                    "LastUpdate": 0,
+                    "Created" : Date.now(),
+                    "UpdateFrequency": 3600,
+                    "NextUpdate":-1,
+                    "CardDavConfig":undefined,
+                    "CalDavConfig":undefined,
+                    "OAuth":undefined,
+                    "HttpBasicAuth":undefined,
+                    "HttpDigestAuth":undefined
+
+                };
+            },
+            getItemDesc: function(sync) {
+                return "Synchronisierung " + this.getValString(sync.Name);
+            },
+            ready: function() {
+
+                this.$.ajaxSyncRefresher.set("url",getReplacedAjaxUri(this.$.ajaxSyncRefresher.url));
+                if(this.internalSync.Type==undefined) this.internalSync.Type="";
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "sync";
+                this.upperDtoName = "Sync";
+                this.ajaxDeleter = this.$.ajaxSyncDeleter;
+                this.ajaxCreator = this.$.ajaxSyncCreator;
+                this.ajaxUpdater = this.$.ajaxSyncUpdater;
+            },
+
+            _saveEdit: function(e) {
+                switch(this.internalSync.Type) {
+                    case "google" : {
+                        this.lastSaveEvent = e;
+                        if (this.$.googleSync.syncCalendar) {
+                            this.internalSync.CalDavConfig = {
+                                Id:-1,
+                                RootUri:"https://www.googleapis.com/.well-known/caldav",
+                                Type:"google"
+                            };
+                        }
+                        if (this.$.googleSync.syncContacts) {
+                            this.internalSync.CardDavConfig = {
+                                Id:-1,
+                                RootUri:"https://www.googleapis.com/.well-known/carddav",
+                                Type:"google"
+                            };
+                        }
+                        if(!this.googleSignedIn) {
+                            this.$.googleSync.signIn();
+                        } else {
+                            this.saveEdit(e);
+                        }
+                        break;
+                    }
+                    default : {
+                        this.saveEdit(e);
+                        break;
+                    }
+                }
+
+            },
+
+            // If a signin-object fires signed in event, we
+            // save the returned credentials/login-tokens into the request object,
+            // so e.g. a "googleAuthCode" can be used for
+            // creating google login tokens.
+            _offlineSigninSuccess: function(e) {
+                if(e.detail.body) {
+                    for (var prop in e.detail.body) {
+                        if (e.detail.body.hasOwnProperty(prop)) {
+                            this.$.ajaxSyncUpdater.body[prop] = e.detail.body[prop];
+                            this.$.ajaxSyncCreator.body[prop] = e.detail.body[prop];
+                        }
+                    }
+                }
+                if(this.lastSaveEvent) {
+                    this.saveEdit(this.lastSaveEvent);
+                }
+            },
+            // TODO : signin successful - get available addressbooks/calendars
+            _signinSuccess: function(e) {
+                if(e.detail.googleToken) { // only one addressbook - but maybe multiple calendars?
+                }
+            },
+            _syncChanged:function(a,b) {
+
+
+                this._dtoChanged(a,b);
+                this._resetProperties();
+            },
+            _onRefresherReturned:function(request) {
+                if(request.detail.response == null) {
+                    showError(T("Error") + ": " + request.detail.statusText);
+                    this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+                }
+                else if(request.detail.response.Success == false) {
+                    showResultErrors(request.detail.response,this.t);
+                    this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+                } else {
+                    this.fire('refreshed',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+                    showToast(this.t.refreshSuccessful);
+                    window.setTimeout(function(){
+                        document.location.reload();
+                    },3000);
+                }
+                this.$.saveButton.disabled = false;
+                this.$.cancelButton.disabled = false;
+                this.loading = false;
+                unload(this.lowerDtoName);
+            }
+        });
+    </script>
+</dom-module>

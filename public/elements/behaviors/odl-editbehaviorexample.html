@@ -1,0 +1,125 @@
+
+
+
+
+<!-- TODO : UPDATE WITH NEW ROUTING CONCEPTS!!!! For now use car-edit as example--->
+
+
+
+
+
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+
+<link rel="import" href="../edits/driver-edit.html">
+<link rel="import" href="../../elements/behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+
+<dom-module id="car-edit">
+
+    <template>
+
+        <style include="odl-styles"></style>
+        <style>
+            paper-material {
+                width: 99%;
+            }
+        </style>
+
+        <!-- Dialogs for checking if sure to delete or sure to leave page with unchanged changes -->
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+
+        <!-- Ajax-Requests for Delete, Create, Update -->
+        <iron-ajax id="ajaxCarDeleter"
+                   url="../../carMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxCarCreator"
+                   url="../../carMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxCarUpdater"
+                   url="../../carMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <div class="vertical layout fit">
+            <!-- Top title toolbar with back,button, loading spinner, cancel and save -->
+            <paper-toolbar>
+                <paper-icon-button id="carEdit_back" icon="arrow-back" title="zurück zur Fahrzeugliste" on-tap="back">
+                </paper-icon-button>
+                <div class="title">Fahrzeug bearbeiten</div>
+                <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                <paper-icon-button id="cancelButton" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+                <paper-icon-button id="saveButton" icon="icons:save" on-tap="saveEdit" title="Speichern" disabled="[[saveDisabled]]"></paper-icon-button>
+            </paper-toolbar>
+
+            <!-- The actual form for editing the element - note that it uses the "internal"-object -->
+            <paper-material id="carEdit" class="flex">
+                <div class="fit" style="overflow:auto;">
+                    <form is="iron-form" id="formEditCar" method="POST">
+                        <paper-input auto-validate="true" id="car_edit_plate" name="plate" pattern="^[A-Z]{1,3}-[A-Z]{1,2} ?[0-9]{1,4}$"  required label="Kennzeichen" type="text" value="{{internalCar.Plate}}"></paper-input>
+                        <paper-input id="car_edit_type" name="type"  required label="Typ" type="text" value="{{internalCar.Type}}"></paper-input>
+                    </form>
+                </div>
+            </paper-material>
+        </div>
+    </template>
+    <script>
+
+        Polymer({
+            is: "car-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+            properties: {
+                car: {
+                    type: Object,
+                    notify: true,
+                    observer:'_dtoChanged'
+                },
+                internalCar: {
+                    type: Object,
+                    notify:true
+                }
+            },
+            getItemDesc: function(car) {
+                return "Fahrzeug " + this.getValString(car.Type) + " mit dem Kennzeichen " + this.getValString(car.Plate);
+            },
+            getNew: function() {
+                return {
+                    "Id": -1,
+                    "Owner" : {"Address":{}},
+                    "Type" : "",
+                    "Plate" : "",
+                    "FirstMileage": 0,
+                    "Mileage": 0,
+                    "FirstUseDate": 0
+                };
+            },
+            ready: function() {
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "car";
+                this.upperDtoName = "Car";
+                this.ajaxDeleter = this.$.ajaxCarDeleter;
+                this.ajaxCreator = this.$.ajaxCarCreator;
+                this.ajaxUpdater = this.$.ajaxCarUpdater;
+            }
+
+        });
+    </script>
+</dom-module>

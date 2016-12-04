@@ -1,0 +1,421 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-icons/communication-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../../components/neon-animation/neon-animated-pages.html">
+
+<link rel="import" href="../edits/contact-edit.html">
+<link rel="import" href="../details/contact-detail.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../behaviors/list-styles.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../sync-helpers/google-sync.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+
+<dom-module id="contact-list">
+
+    <template>
+
+        <carbon-route id="contactsRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+
+        <style include="odl-styles"></style>
+        <style include="list-styles"></style>
+        <style>
+
+            .contact-disabled {
+                background-color:#DDDDDD;
+            }
+
+            paper-icon-button.oldNotHidden {
+                cursor: pointer;
+            }
+
+            paper-icon-button.oldHidden {
+                cursor: pointer;
+                color: #aaaaaa;
+            }
+        </style>
+
+        <iron-ajax id="ajaxContactFetcher"
+                   url="../../../adrMan"
+                   params='{ "action": "read", "contacts": "1" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}"></iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="contacts_pages"
+                             on-neon-animation-finish="_onPageChange" class="fit"
+                             selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+                             selected-item="{{selectedPage}}">
+
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" entry-animation="fade-in-animation"  exit-animation="fade-out-animation" class="lhm-tab-animation">
+                <div class="vertical layout fit">
+                    <paper-toolbar>
+                        <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                        <paper-icon-button title="Alte Kontakte anzeigen/ausblenden"
+                                           on-tap="_toogleHideOld" icon="icons:stars"
+                                           class$="[[_getHideOldClass(hideOldContacts)]]"
+                                           active></paper-icon-button>
+                        <span class="title">
+                            Kontakte</span>
+                        <div class="horizontal layout searchBar">
+                            <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                            <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaUserBox"></paper-badge>
+                            <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                            </paper-icon-button>
+                            <paper-icon-button  icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                            </paper-icon-button>
+                        </div>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="newContactBtn" icon="social:person-add" on-tap="_newContact" enabled="{{!loading}}" >+
+                        </paper-icon-button>
+
+                    </paper-toolbar>
+
+                    <div class="vertical layout flex">
+                        <paper-material elevation="2" class="vertical layout flex">
+                            <iron-selector id="contactlistMenu" attr-for-selected="contactid" selected="{{selected}}">
+                                <iron-list id="contactIronList" items="{{contacts}}" as="contact" class="vertical layout fit" style="overflow:auto;">
+                                    <template>
+                                        <div  on-tap="highlightContact" class$="list-item [[_getContactClass(contact,hideOldContacts)]]" contactid="{{contact.Id}}">
+                                            <paper-icon-item id="item_[[contact.Id]]">
+                                                <trip-type type="[[contact.TripType]]" item-icon></trip-type>
+                                                <paper-item-body id="body_[[contact.Id]]">
+                                                    <div class="title">[[contact.Title]]<span hidden$="[[!_isTrue(contact.Disabled)]]"> (Alt) </span></div>
+                                                    <span class="thin"><span>[[contact.Address.Postal]]</span> <span>[[contact.Address.City]]</span></span>
+                                                    <span class="thin"><span>[[contact.Address.Street]]</span> <span>[[contact.Address.HouseNumber]]</span></span>
+                                                </paper-item-body>
+                                                <span secondary>
+                                                    <paper-icon-button hidden$="[[_isTrue(contact.Disabled)]]" mini icon="icons:delete" on-tap="_deleteContact" contact="[[contact]]" title="Löschen"></paper-icon-button>
+                                                    <paper-icon-button hidden$="[[_isTrue(contact.Disabled)]]" mini icon="icons:create" on-tap="_editContact" contact="[[contact]]" title="Bearbeiten"></paper-icon-button>
+
+                                                    <template is="dom-if" if="{{map.Id}}">
+                                                        <paper-icon-button icon="room" title="Auf der Karte zentrieren"></paper-icon-button>
+                                                    </template>
+                                                </span>
+                                            </paper-icon-item>
+                                        </div>
+                                    </template>
+                                </iron-list>
+                            </iron-selector>
+                        </paper-material>
+                    </div>
+
+                </div>
+            </neon-animatable>
+
+            <!-- Start page 1 / edit Contact -->
+            <neon-animatable name="edit" class="lhm-tab-animation fit scroll">
+                <contact-edit class$="[[ifTrue(isMobile,'mobile','desktop')]]"
+                              hide-old-contacts="[[hideOldContacts]]" id="contactEdit" contact="{{selectedContact}}"
+                              on-created="_contactCreated"
+                              on-updated="_contactUpdated"
+                              on-deleted="_contactDeleted"
+                              on-canceled="_backToList"
+                              on-back="_backToList"
+                              loading="{{editLoading}}"
+                              contacts="{{contacts}}"
+                              contacts-by-id="{{contactsById}}"
+                ></contact-edit>
+            </neon-animatable>
+
+            <!-- Start page 2 / Contact detail -->
+            <neon-animatable class="fit scroll">
+                <contact-detail name="detail" id="contactDetail" contact="{{selectedContact}}"
+                                on-request-delete="_deleteContact"
+                                on-request-edit="_editContact"
+                                on-canceled="_backToList"
+                                loading="{{detailLoading}}"
+                ></contact-detail>
+            </neon-animatable>
+        </neon-animated-pages>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "contact-list",
+
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                contacts: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                filteredContacts: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                selectedContact: {
+                    type: Object,
+                    notify: true
+                },
+                contactsById: {
+                    type: Object,
+                    notify: true,
+                    value: {}
+                },
+                trips: {
+                    type: Array,
+                    notify:true,
+                    value: []
+                },
+                prevHighlighted: Object,
+                map: Object,
+                hideOldContacts: {
+                    type: Boolean,
+                    notify: true,
+                    observer: "_hideOldContactsChanged"
+                }
+            },
+            _hideOldContactsChanged: function() {
+                this.async(function() { // workaround for list not recalculating the list item size correctly
+                    // for items that are set to visible again using _getContactClass
+                    // for now we use this workaround (hiding items) as iron-list does not support filtering :
+                    // https://github.com/PolymerElements/iron-list/issues/123
+                    this.push("contacts",this.$.contactEdit.getNew());
+                    this.async(function(){
+                        this.splice("contacts",this.contacts.length-1,1);
+                    });
+
+                });
+            },
+            observers:[
+                "updateById(contacts.*)"
+
+            ],
+            _toogleHideOld : function() {
+                this.set("hideOldContacts",!this.hideOldContacts);
+            },
+            _getHideOldClass: function(hideOldContacts) {
+                if(hideOldContacts) return "oldHidden";
+                return "oldNotHidden";
+            },
+            highlightContact: function(e) {
+
+                if(this.prevHighlighted) {
+                    this.prevHighlighted.highlighted = false;
+                    this.notifyAboutChange(this.prevHighlighted, "highlighted");
+
+                }
+
+                var c = e.model.contact;
+                if(c) {
+                    c.highlighted = true;
+                    this.notifyAboutChange(c, "highlighted");
+                }
+
+                this.async(function(){
+                    this.prevHighlighted = c;
+                });
+            },
+            _isTrue(bool) {
+                return bool!=0
+            },
+            _getContactClass: function(contact,hideOldContacts) {
+                if(contact.Disabled!=0) {
+                    if(hideOldContacts) return "hidden";
+                    return "contact-disabled";
+                }
+                return ""
+            },
+            updateTripsForContact: function(event) {
+                var result = event.detail.response;
+                var contact = event.detail.updatedObject;
+
+                if(contact == undefined) {
+                    contact = this.contactsById[result.Id];
+                }
+
+                if (event.type != 'deleted') {
+                    contact.Address.GeoZones = result.GeoZones;
+                    var that = this;
+                    var eTrips = result.MatchingTripsForEndContact.split(',');
+                    var sTrips = result.MatchingTripsForStartContact.split(',');
+                    $.each(this.trips, function (key, trip) {
+                        var changed = false;
+                        var tripId = trip.Id.toString();
+                        if (sTrips.indexOf(tripId) != -1) {
+                            changed = true;
+                            trip.StartContactId = contact.Id;
+                        }
+                        if (eTrips.indexOf(tripId) != -1) {
+                            changed = true;
+                            trip.EndContactId = contact.Id;
+                        }
+                        if(changed) {
+                            that.fire('recalc-trip',{key:key,trip:trip});
+                        }
+                    });
+                } else {
+                    var that = this;
+                    contact.Address.GeoZones = [];
+                    $.each(this.trips, function (key, trip) {
+                        var changed = false;
+
+                        if(trip.StartContactId == contact.Id) {
+                            changed = true;
+                            trip.StartContactId = undefined;
+                        }
+                        if(trip.EndContactId == contact.Id) {
+                            changed = true;
+                            trip.EndContactId = undefined;
+                        }
+                        if(changed) {
+                            that.fire('recalc-trip',{key:key,trip:trip});
+                        }
+                    });
+                }
+            },
+            _contactDeleted: function(event) {
+                console.log("deleted contact");
+                this._backToList(event);
+                this.updateTripsForContact(event);
+
+            },
+            _contactUpdated: function(event) {
+                console.log("updated contact");
+                var createdEvent;
+                if(event.detail.response.NewContact!==null) {
+                    createdEvent = $.extend(true, {}, event);
+                }
+                this._backToList(event);
+                this.updateTripsForContact(event);
+                if(createdEvent!=undefined) {
+                    createdEvent.type = "created";
+                    createdEvent.detail.updatedObject = event.detail.response.NewContact;
+                    this._backToList(createdEvent);
+                    this.updateTripsForContact(createdEvent);
+                    // now the newly created contact is at the end of the list and the old disabled contact
+                    // where it was before - we need to swap positions!
+                    var oldC = event.detail.updatedObject;
+                    var newC = createdEvent.detail.updatedObject;
+                    var oldIdx = getIdxFromId(oldC.Id,this.contacts);
+                    var newIdx = getIdxFromId(newC.Id,this.contacts);
+                    this.set("contacts."+oldIdx,newC);
+                    this.set("contacts."+newIdx,oldC);
+                }
+
+
+            },
+            _contactCreated: function(event) {
+                console.log("created contact");
+                this._backToList(event);
+                this.updateTripsForContact(event);
+            },
+            _backToList: function(event) {
+                var c = event.detail.updatedObject;
+                if(c) {
+                    c.highlighted = false;
+                    this.notifyAboutChange(c, "highlighted");
+                }
+                this.backToList(event);
+
+            },
+            _contactsChanged: function(change) {
+                var that = this;
+                this.fire('resize');
+
+                console.log('contactlist _contactsChanged', change);
+
+
+            },
+
+            _newContact: function(event) {
+                this.async(function() {
+                    this.set("routeParams.selectedId",-1);
+                    this.set("routeParams.listSelectedName","edit");
+                });
+            },
+            _editContact: function(event) {
+                this.set("routeParams.selectedId",this.selectedContact.Id);
+                this.set('selectedContact.highlighted',false);
+                this.notifyAboutChange(this.selectedContact,"highlighted");
+                var contact = event.model!=null ? event.model.contact : event.detail.contact;
+                this.set("routeParams.selectedId",contact.Id);
+                this.set('selectedContact.highlighted',true);
+                this.notifyAboutChange(this.selectedContact,"highlighted");
+                this.async(function() {
+                    this.set("routeParams.listSelectedName","edit");
+                });
+            },
+            sendContactUpdatedEvent: function(contact) {
+
+            },
+            showDetails: function(event) {
+                this.set("routeParams.selectedId",this.selectedContact.Id);
+                this.set('selectedContact.highlighted',false);
+                this.notifyAboutChange(this.selectedContact,"highlighted");
+                var contact = event.model!=null ? event.model.contact : event.detail.contact;
+                this.set("routeParams.selectedId",contact.Id);
+                this.set('selectedContact.highlighted',true);
+                this.notifyAboutChange(this.selectedContact,"highlighted");
+                this.async(function() {
+                    this.set("routeParams.listSelectedName","details");
+                });
+            },
+            _deleteContact: function(event) {
+                event.stopPropagation();
+                this.set('selectedContact.highlighted',false);
+                this.notifyAboutChange(this.selectedContact,"highlighted");
+                var contact = event.model!=null ? event.model.contact : event.detail.contact;
+                this.set("routeParams.selectedId",contact.Id);
+                this.set('selectedContact.highlighted',true);
+                this.notifyAboutChange(this.selectedContact,"highlighted");
+                // important: Go to page with edit-control!
+                this.set("routeParams.listSelectedName","edit");
+                this.async(function() {
+                    this.$.contactEdit.delete_item(event);
+                });
+            },
+            updateContact: function(contact) {
+                this.$.contactEdit.saveItem(contact);
+            },
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "contacts";
+                this.listNameUpper = "Contacts";
+                this.ironList = this.$$("#contactIronList");
+                this.mobileIronList = this.$$("#mobileContactIronList");
+
+                this.fetcher = this.$.ajaxContactFetcher;
+
+                this.$.ajaxContactFetcher.generateRequest();
+            },
+            initItem: function(contact) {
+                contact.highlighted=false;
+            }
+
+        });
+    </script>
+
+</dom-module>

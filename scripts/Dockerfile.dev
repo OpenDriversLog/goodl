@@ -1,0 +1,89 @@
+FROM golang:1.7
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        sudo \
+        git-core \
+        ssh \
+        golang-go.tools \
+        libssl-dev \
+        pkg-config \
+        glib-2.0 \
+        build-essential \
+     && rm -rf /var/lib/apt/lists/*
+
+# setup node, npm, bower
+RUN gpg --keyserver pool.sks-keyservers.net --recv-keys 7937DFD2AB06298B2293C3187D33FF9D0246406D 114F43EE0176B71C7BC219DD50A3051F888C628D
+
+ENV NODE_VERSION 0.12.0
+ENV NPM_VERSION 3.8.6
+
+RUN curl -SLO "http://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
+    && curl -SLO "http://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
+    && gpg --verify SHASUMS256.txt.asc \
+    && grep " node-v$NODE_VERSION-linux-x64.tar.gz\$" SHASUMS256.txt.asc | sha256sum -c - \
+    && tar -xzf "node-v$NODE_VERSION-linux-x64.tar.gz" -C /usr/local --strip-components=1 \
+    && rm "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc \
+    && npm install -g npm@"$NPM_VERSION" \
+    && npm cache clear
+
+ENV PATH $PATH:/nodejs/bin
+
+RUN npm install -g vulcanize
+RUN npm i minimize -g
+RUN npm install -g bower
+RUN npm install -g grunt
+RUN npm install -g grunt-minify-polymer
+RUN npm install -g grunt-cli
+
+# golang dependency management
+ENV GO15VENDOREXPERIMENT 1
+RUN go get -v -u github.com/Masterminds/glide
+
+# setup test frameworks
+RUN go get -v -u github.com/sclevine/agouti \
+    && go get -v -u github.com/onsi/ginkgo/ginkgo \
+    && go get -v -u github.com/onsi/gomega
+
+# setup CompileDaemon
+RUN go get -v github.com/fschl/CompileDaemon
+RUN cd $GOPATH/src/github.com/fschl/CompileDaemon \
+    && go install
+
+ENV ENVIRONMENT development
+
+ENV GIT_IP 127.0.0.1
+ENV GIT_PORT 10022
+ENV GODOC_PORT 6060
+
+RUN adduser --disabled-login --gecos 'GoODL' goodl \
+    && passwd -d goodl
+
+RUN mkdir -p  /home/goodl/setup/ \
+    && mkdir /home/goodl/.ssh/ \
+    && chown goodl:goodl -R /home/goodl
+
+COPY scripts/init.dev /home/goodl/setup/init
+RUN sudo chmod +x /home/goodl/setup/init \
+    && sudo chown goodl:goodl /home/goodl/setup/init
+
+
+COPY DONTADDTOGIT/deploy_private /home/goodl/.ssh/id_rsa
+COPY DONTADDTOGIT/ DONTADDTOGIT/
+
+RUN chmod 700 /home/goodl/.ssh/id_rsa
+
+# not really using this in dev, since everything is mounted from host machine
+#RUN echo "Host gitlab.opendriverslog.de\n\tStrictHostKeyChecking no\n" >>  /home/goodl/.ssh/config
+#RUN echo "Host "${GIT_IP}"\n\tStrictHostKeyChecking no\n" >>  /home/goodl/.ssh/config
+#RUN git config --global url.ssh://git@${GIT_IP}:${GIT_PORT}/.insteadOf http://gitlab.opendriverslog.de/
+
+WORKDIR $GOPATH/src/github.com/OpenDriversLog/goodl
+
+COPY . .
+
+RUN bower install --allow-root --verbose
+EXPOSE 4000
+
+
+CMD ["/home/goodl/setup/init"]

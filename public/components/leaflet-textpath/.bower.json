@@ -1,0 +1,14 @@
+{
+  "name": "leaflet-textpath",
+  "homepage": "https://github.com/Compufreak345/Leaflet.TextPath",
+  "version": "0.2.2",
+  "_release": "0.2.2",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.2.2",
+    "commit": "988518de1c8ede58831a4ea96c022a879a647667"
+  },
+  "_source": "git://github.com/Compufreak345/Leaflet.TextPath.git",
+  "_target": "*",
+  "_originalSource": "git://github.com/Compufreak345/Leaflet.TextPath.git"
+}

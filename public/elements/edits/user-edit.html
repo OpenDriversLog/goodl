@@ -1,0 +1,263 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-checkbox/paper-checkbox.html">
+
+<link rel="import" href="../../elements/behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<link rel="import" href="../controls/password-security-bar.html">
+<dom-module id="user-edit">
+
+    <template>
+
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+
+        <style>
+            paper-material {
+                width: 99%;
+            }
+        </style>
+
+        <!-- Dialogs for checking if sure to delete or sure to leave page with unchanged changes -->
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+
+        <!-- Ajax-Requests for Delete, Create, Update -->
+        <iron-ajax id="ajaxUserDeleter"
+                   url="../../../userMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxUserCreator"
+                   url="../../../userMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxUserUpdater"
+                   url="../../../userMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+        <iron-ajax id="ajaxEnc"
+                   url="../../../initEnc"
+                   content-type="application/x-www-form-urlencoded" body='{ }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"
+                   on-response="_onEncResponse">
+        </iron-ajax>
+        <div id="settingsWrapper" class="vertical layout">
+            <!-- Top title toolbar with back,button, loading spinner, cancel and save -->
+            <paper-toolbar class="flex">
+                <paper-icon-button hidden$="{{!adminMode}}" id="userEdit_back" icon="arrow-back" title="zurück zur Nutzerdatenliste" on-tap="back">
+                </paper-icon-button>
+                <div class="title">{{title}}</div>
+                <div hidden$="{{!adminMode}}">Set ActivationKey to '-' to activate user.</div>
+                <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                <paper-icon-button id="cancelButton" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+                <paper-icon-button id="saveButton" icon="icons:save" on-tap="_saveEdit" title="Speichern" disabled="[[saveDisabled]]"></paper-icon-button>
+            </paper-toolbar>
+
+            <!-- The actual form for editing the element - note that it uses the "internal"-object -->
+            <paper-material id="userEdit" class="vertical layout" style="width:100%;">
+                <form is="iron-form" id="formEditUser">
+                    <div class="vertical layout">
+                        <input type="hidden" id="updateUser" value="1">
+
+                        <div hidden$="{{isRegister}}" >
+                            <paper-checkbox id="tutorialEnableCB" checked="{{internalUser.TutorialDisabled}}">[[t.finishedTutorial]]</paper-checkbox>
+                        </div>
+                        <div class="horizontal layout">
+                            <div class="vertical layout">
+                                <paper-dropdown-menu label="[[t.userTitle]]" id="title">
+                                    <paper-menu class="dropdown-content" selected="{{internalUser.Title}}" attr-for-selected="value">
+                                        <paper-item disabled value="user">[[t.user]]</paper-item>
+                                        <paper-item value="Mr.">[[t.Mr]]</paper-item>
+                                        <paper-item value="Ms.">[[t.Ms]]</paper-item>
+                                        <paper-item value="Dr. (female)">[[t.Dr_f]]</paper-item>
+                                        <paper-item value="Dr. (male)">[[t.Dr_m]]</paper-item>
+                                        <paper-item value="Prof. (female)">[[t.Prof_f]]</paper-item>
+                                        <paper-item value="Prof. (male)">[[t.Prof_m]]</paper-item>
+
+                                    </paper-menu>
+                                </paper-dropdown-menu>
+
+                            </div>
+                            <paper-input id="firstName" class="unmodified" style="width:300px;" value="{{internalUser.FirstName}}" label="[[t.firstName]]"></paper-input>
+                            <paper-input id="lastName" class="unmodified" style="width:300px;padding-left:50px;" value="{{internalUser.LastName}}" label="[[t.lastName]]"></paper-input>
+
+                        </div>
+
+                        <div>
+                            <paper-input id="mail" required class="unmodified" style="width:500px;" value="{{internalUser.LoginName}}" label="[[t.mailAddress]]"></paper-input>
+                        </div>
+                        <div>
+                            <password-security-bar required="[[isRegister]]" pw-title="[[t.password]]" repeat-title="[[t.repeatPassword]]" title="[[t.passwordsecurity]]" password="{{internalUser.Password}}" repeated="{{internalUser.RepeatedPassword}}" valid="{{validPassword}}"></password-security-bar>
+                        </div>
+                        <div hidden$="{{isRegister}}" >
+                            <paper-checkbox id="notificationsEnabled" checked="{{internalUser.NotificationsEnabled}}">[[t.notificationsEnabled]]</paper-checkbox>
+                        </div>
+                        <div class="horizontal layout" hidden$="{{!adminMode}}">
+                            <div>You are Admin!</div>
+                            <paper-input id="Level" class="unmodified" style="width:300px;" value="{{internalUser.Level}}" label="Level"></paper-input>
+                            <paper-input id="ActivationKey" class="unmodified" style="width:300px;padding-left:50px;" value="{{internalUser.ActivationKey}}" label="ActivationKey"></paper-input>
+                        </div>
+                    </div>
+                </form>
+            </paper-material>
+        </div>
+    </template>
+    <script>
+
+        Polymer({
+            is: "user-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+            properties: {
+                user: {
+                    type: Object,
+                    notify: true,
+                    observer:'_dtoChanged'
+                },
+                isRegister: {
+                    type: Boolean,
+                    value: false
+                },
+                inviteKey: {
+                    type:String,
+                    value:undefined
+                },
+                title: "",
+                internalUser: {
+                    type: Object,
+                    notify:true
+                },
+                validPassword: {
+                    type:Boolean,
+                    value:false
+                },
+                t:{ type:Object,value:{} },
+                adminMode: {
+                    type:Boolean,
+                    value:false
+                }
+            },
+            listeners: {
+                'updated': '_updated',
+                'error': '_error',
+                'created': '_created'
+
+
+            },
+            getItemDesc: function(user) {
+                return "Nutzerdaten für " + this.getValString(user.FirstName) + " " + this.getValString(user.LastName);
+            },
+            getNew: function() {
+                return {
+                    "Id": -1,
+                    "Title" : "",
+                    "FirstName" : "",
+                    "LastName" : "",
+                    "LoginName": "",
+                    "Password": "",
+                    "ActivationKey": "",
+                    "TutorialDisabled":false
+                };
+            },
+            ready: function() {
+
+                this.$.ajaxEnc.set("url",getReplacedAjaxUri(this.$.ajaxEnc.url));
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "user";
+                this.upperDtoName = "User";
+                this.ajaxDeleter = this.$.ajaxUserDeleter;
+                this.ajaxCreator = this.$.ajaxUserCreator;
+                this.ajaxUpdater = this.$.ajaxUserUpdater;
+
+            },
+            _saveEdit: function() {
+
+                if(this.validPassword) {
+                    this.$.ajaxEnc.generateRequest();
+                } else {
+                    showError(this.t.error_insecurePassword);
+                }
+            },
+            _onEncResponse:function(r) {
+                // The here implemented basic encryption DOES NOT REPLACE THE REQUIREMENT OF USING SSL. Please USE SSL :>
+                var reqData = r.detail.response;
+                if (reqData && reqData.Nonce) { // initial request to get encryption key
+                    if(this.internalUser.Password) {
+                        // Encrypt with the public key...
+                        var encrypt = new JSEncrypt();
+                        encrypt.setPublicKey(reqData.Nonce);
+                        this.internalUser.Password = encrypt.encrypt(this.internalUser.Password);
+                        this.internalUser.RepeatedPassword = encrypt.encrypt(this.internalUser.RepeatedPassword);
+                    }
+                    this.$.ajaxUserUpdater.body["reqId"] = reqData.ReqId;
+                    this.$.ajaxUserCreator.body["reqId"] = reqData.ReqId;
+
+                    if(this.inviteKey) {
+                        this.$.ajaxUserCreator.body["inviteKey"] = this.inviteKey;
+                        this.$.ajaxUserUpdater.body["inviteKey"] = this.inviteKey;
+                    }
+                    this.saveEdit();
+
+                } else {
+                    console.Error("Encryption initialisation failed.");
+                    showError("Internal server error");
+                }
+            },
+            _updated: function(){
+                this.clearPasswords();
+            },
+            _created: function(){
+                this.clearPasswords();
+                setRoute("/login");
+                this.async(function(){
+                    showStatus(this.t.registerCompleteText);
+                },1000);
+            },
+            _error: function(){
+                this.clearPasswords();
+            },
+            clearPasswords:function() {
+                this.set("internalUser.Password", "");
+                this.set("internalUser.RepeatedPassword", "");
+                this.set("user.Password", "");
+                this.set("user.RepeatedPassword", "");
+            },
+            initItem:function(u) {
+                u.TutorialDisabled = u.TutorialDisabled>0;
+                u.NotificationsEnabled = u.NotificationsEnabled>0;
+                return u;
+            },
+            polish: function(u) {
+                if(u.Level!==undefined) {
+                    u.Level = parseInt(u.Level);
+                }
+                if(u.TutorialDisabled!==undefined) {
+                    u.TutorialDisabled = u.TutorialDisabled?1:-1;
+                }
+                if(u.NotificationsEnabled!==undefined) {
+                    u.NotificationsEnabled = u.NotificationsEnabled?1:-1;
+                }
+                return u;
+            }
+        });
+    </script>
+</dom-module>

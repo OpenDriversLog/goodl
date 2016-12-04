@@ -1,0 +1,96 @@
+<link rel="import" href="../../components/google-signin/google-signin-aware.html">
+<link rel="import" href="../../components/paper-checkbox/paper-checkbox.html">
+
+<link rel="import" href="../helpers/address-helper.html">
+<link rel="import" href="../behaviors/odl-selectorbehavior.html">
+
+<link rel="import" href="../behaviors/odl-syncbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+
+
+<dom-module id="google-sync">
+    <template>
+        <style include="odl-styles"></style>
+        <div class="vertical layout">
+            <div>
+                <paper-checkbox checked="{{syncContacts}}">[[t.syncContacts]]</paper-checkbox>
+            </div>
+            <div>
+                <paper-checkbox checked="{{syncCalendar}}">[[t.syncCalendar]]</paper-checkbox>
+            </div>
+            <!--template is="dom-if" if="{{signing_in}}" restamp-->
+            <google-signin-aware signed-in="{{signedIn}}" id="googleSignin" id="aware" offline="true" on-google-signin-offline-success="_offlineSigninSuccess" on-google-signin-success="_signinSuccess" label-signin="[[t.syncWithGoogle]]" client-id="1048516662012-t5u1jl18s395u954hhj597483r3a3p6j.apps.googleusercontent.com" scopes="[[finalScopes]]"></google-signin-aware>
+            <!--/template-->
+
+        </div>
+    </template>
+    <script>
+        Polymer({
+            is: "google-sync",
+            behaviors: [ OdlBehaviors.OdlSyncBehavior
+            ],
+            properties: {
+                loading : {
+                    type: Boolean,
+                    value: false
+                },
+                signedIn:{
+                    type: Boolean,
+                    value : false
+                },
+                syncCalendar: {
+                    type:Boolean,
+                    value:false
+                },
+                syncContacts: {
+                    type:Boolean,
+                    value:true
+                },
+                finalScopes:{type:String, value:""},
+                t:{ type:Object,value:{} },
+                resId:{type:Object,value:{}},
+                signing_in: {type:Boolean, value:false}
+            },
+            _getScopes: function(syncContacts,syncCalendar) {
+                var s = "";
+                if(syncContacts) s+="https://www.googleapis.com/auth/contacts.readonly";
+                if(syncCalendar) s+=" https://www.googleapis.com/auth/calendar";
+                return s;
+            },
+            signIn: function() {
+                this.signing_in = false;
+                var scopes = this._getScopes(this.syncContacts,this.syncCalendar);
+                this.set("finalScopes",scopes);
+                this.$.googleSignin.set("scopes",scopes);
+                this.async(function(){
+                    this.$.googleSignin.signIn();
+                },666);
+            },
+            back: function() {
+                this.fire('back',{type:"google-sync"});
+            },
+            _offlineSigninSuccess: function(e) {
+                var authCode = e.detail.code;
+                this.fire("offline-signin-success",{body:{googleAuthCode:authCode}});
+            },
+            _signinSuccess: function(e) {
+                var token = gapi.auth2.getAuthInstance().currentUser.get().hg.access_token;
+                this.fire("signin-success",{googleToken:token});
+            },
+            _signInSaved: function(r) {
+                if(r.detail.response == null) {
+                    showError(T("Error") + ": " + r.detail.statusText);
+                    this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:r.detail.response});
+                }
+                else if(r.detail.response.Success == false) {
+                    showResultErrors(r.detail.response,this.t);
+                    this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:r.detail.response});
+                } else {
+                    this.updateContacts(r.detail.response.UpdatedContacts);
+                }
+            }
+
+        });
+    </script>
+
+</dom-module>

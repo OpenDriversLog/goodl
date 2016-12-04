@@ -1,0 +1,299 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../elements/selectors/contact-selector.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<link rel="import" href="../odl/odl-theme.html">
+<script src="../../components/devbridge-autocomplete/dist/jquery.autocomplete.min.js"></script>
+
+<dom-module id="address-edit">
+
+
+
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            paper-input {
+                padding: 3px;
+            }
+        </style>
+        <style include="edit-styles"></style>
+        <div id="addressEdit" class="addressEdit flex">
+            <div class="horizontal layout">
+                <h3 class="flex">Adresse</h3>
+                <div hidden$="{{hasNoContacts}}">
+                    <contact-selector hide-old-contacts="[[hideOldContacts]]" on-tapped="_contactTapped" selected-contact="{{selectedContact}}" contacts-by-id="{{contactsById}}" contacts="{{contacts}}" label="Von Kontakt kopieren" create-disabled></contact-selector>
+                </div>
+            </div>
+            <paper-icon-button id="buttonAddresssucheAssisted" icon="search" on-tap="photonAutocomplete" class="raised"></paper-icon-button>
+            <paper-input id="address_search_photon" label="Addresssuche" type="text" class="validate" value="{{address.Title}}" style="display:none;"></paper-input>
+
+
+            <div class="horizontal layout">
+                <paper-input id="address_edit_postal" name="postal" class="flex-3" pattern="^\d{2}(?:\d{3})?$"  required label="PLZ" type="text" value="{{address.Postal}}" max-length="5"></paper-input>
+                <paper-input id="address_edit_city" name="city"  class="flex-7" required label="Stadt" type="text" value="{{address.City}}"></paper-input>
+            </div>
+            <div class="horizontal layout">
+                <paper-input id="address_edit_street" name="street" required label="Straße"
+                             type="text" value="{{address.Street}}"
+                             class="flex-7"></paper-input>
+                <paper-input id="address_edit_houseNumber" name="number" label="Hausnummer"
+                             type="text" value="{{address.HouseNumber}}"
+                             class="flex-3"></paper-input>
+            </div>
+        </div>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "address-edit",
+
+            properties: {
+                address: {
+                    type: Object,
+                    notify: true,
+                    observer:'_addressChanged'
+                },
+                contacts: {
+                    type:Array,
+                    value:[]
+                },
+                contactsById: {
+                    type:Object,
+                    value:{}
+                },
+                hasNoContacts: {
+                    type:Boolean,
+                    computed:"_hasNoContacts(contacts)"
+                },
+                selectedContact: {
+                    type: Object,
+                    value: {}
+                },
+                hideOldContacts: Boolean
+            },
+            observers: [
+                "_addressChanged(address.*)"
+            ],
+            _hasNoContacts: function(c) {
+                if(c==undefined || c.length==0) {
+                    return true;
+                }
+
+                return false;
+            },
+            _contactTapped: function() {
+
+                this.async(function(){
+                    if(this.selectedContact && this.selectedContact.Address) {
+                        this.address = $.extend(true, {}, this.selectedContact.Address);
+                        this.fire("contact-copy",this.selectedContact);
+                    }
+                },500);
+            },
+            photonAutocomplete: function() {
+                console.log('photonAutocomplete start');
+                var that = this;
+
+                var el = $(this.$.address_search_photon);
+                el.show(350);
+                that.$.address_search_photon.$.input.focus();
+
+
+                el.autocomplete({
+                    deferRequestBy: 100,
+                    noCache: true,
+                    serviceUrl: 'https://photon.komoot.de/api?lang=de',
+                    paramName: 'q',
+                    transformResult: function(response) {
+                        var geoJsonResp = $.parseJSON(response);
+                        return {
+                            suggestions: $.map(geoJsonResp.features, function(dataItem) {
+                                return {
+                                    value: dataItem.properties.name == null ? "" : dataItem.properties.name,
+                                    data: that.getBetterData(dataItem)
+                                };
+                            })
+                        };
+                    },
+                    formatResult: function(d, el) {
+                        var feature = d.data;
+                        var title = $('<strong>');
+                        var detailsContainer = $('<small>');
+                        title.text(feature.properties.name);
+                        detailsContainer.text(feature.properties.details);
+                        return "<paper-material elevation=\"1\" style='background-color:white; border:1px solid black'>" +
+                                title.html() + "<br/>" + detailsContainer.html() + "</paper-material>";
+                    },
+                    triggerSelectOnValidInput: false,
+                    onSelect: function(suggestion) {
+                        el.devbridgeAutocomplete().disable();
+
+                        var f = suggestion.data;
+                        var p = f.properties;
+                        /* var title = p.name; */
+
+                        that.set("address.Latitude",f.geometry.coordinates[1]);
+                        that.set("address.Longitude",f.geometry.coordinates[0]);
+
+                        if (p.city) {
+                            that.set("address.City",p.city);
+                        }
+                        if (p.postcode) {
+                            that.set("address.Postal",p.postcode);
+                        }
+                        if (p.street) {
+                            that.set("address.Street",p.street);
+                        }
+                        if (p.housenumber) {
+                            that.set("address.HouseNumber",p.housenumber);
+                        }
+
+                        el.devbridgeAutocomplete().enable();
+                    }
+                });
+
+                this.$.address_search_photon.focus();
+            },
+
+            getBetterData: function(feature) {
+                var details = [];
+                var type = feature.properties.osm_type;
+                var street = feature.properties.street;
+                if (type) {
+                    if (street == null && type == "W") {
+                        feature.properties.street = feature.properties.name;
+                    }
+                }
+
+                // if (type) details.push(type);
+                if (feature.properties.street && feature.properties.street !== feature.properties.name) {
+                    details.push(feature.properties.street);
+                }
+                if (feature.properties.housenumber) {
+                    details.push(feature.properties.housenumber);
+                }
+                if (feature.properties.postcode) {
+                    if (details.length != 0) {
+                        details.push(", ");
+                    }
+                    details.push(feature.properties.postcode);
+                }
+
+                if (feature.properties.city && feature.properties.city !== feature.properties.name) {
+                    if (details.length != 0) {
+                        details.push(", ");
+                    }
+                    details.push(feature.properties.city);
+                }
+
+                if (feature.properties.state) details.push(', ' + feature.properties.state);
+
+                feature.properties.details = details.join(' ');
+
+                return feature;
+            },
+            _addressChanged:function() {
+                if(this.address)
+                    this.address.Title = this.getBestAdrTitle(this.address);
+            },
+            getNewAddress: function() {
+                return {
+                    "Id": -1,
+                    "Latitude" : 0,
+                    "Longitude":0,
+                    "Street":"",
+                    "Postal":"",
+                    "City":"",
+                    "Additional1":"",
+                    "Additional2":"",
+                    "HouseNumber":"",
+                    "Title":"",
+                    "GeoZones":[]
+                };
+            },
+            getBestAdrTitle: function(Address) {
+                var adrTitle = Address.Title;
+                if (adrTitle == "" && Address.Street != "") {
+                    adrTitle = this.getGenericAdrTitle(Address);
+                }
+                return adrTitle;
+            },
+
+            getGenericAdrTitle: function(Address) {
+                if (Address.Street != "") {
+                    return Address.Street + " " + Address.HouseNumber + ", " + Address.Postal + " " + Address.City;
+                }
+                if (Address.Postal != "") {
+                    return Address.Postal + " " + Address.City;
+                }
+                if (Address.City != "") {
+                    return Address.City;
+                }
+            },
+            /**
+             * Gets accurate lat/lng from geocode.farm. Use before saving
+             **/
+            updateLatLng: function(finishFunc) {
+                if(this.address /*&& (this.address.Id<1 || this.address.Latitude==0 || this.address.Longitude==0)*/) {
+                    var a = this.address;
+                    /* figure out coordinates when photonAutocomplete was not used */
+                    var data = {"lang": "en", "limit": 1};
+                    var s = a.Postal + " ";
+                    s += a.City + " ";
+                    s += a.Street + " ";
+                    s += a.HouseNumber;
+                    data["addr"] = JSON.stringify(s);
+                    var that = this;
+                    console.log('sending to geocode.farm', data);
+                    $.ajax({
+                        type: "GET",
+                        url: "https://www.geocode.farm/v3/json/forward/",
+                        async: true,
+                        data: data,
+                        dataType: 'json',
+                        success: function (response) {
+
+                            if(response.geocoding_results && response.geocoding_results.RESULTS && response.geocoding_results.RESULTS.length>0) {
+                                console.log('geocode.farm success', response);
+                                var res = response.geocoding_results.RESULTS[0];
+                                that.set("address.Latitude", parseFloat(res.COORDINATES.latitude));
+                                that.set("address.Longitude", parseFloat(res.COORDINATES.longitude));
+                                that.fire("coordinate-update");
+                                if(finishFunc) {
+                                    finishFunc("success");
+                                }
+                            } else {
+                                console.warn("No geocoding results : ", response);
+                                if(finishFunc) {
+                                    finishFunc("notFound");
+                                }
+                            }
+                        },
+                        error: function (response) {
+                            console.error('geocode.farm error', response);
+                            var resp = $.parseJSON(response);
+                            //showError(T("Error") + ": " + resp.responseText);
+                            finishFunc("error");
+                        }
+                    });
+                }
+            }
+
+
+        });
+    </script>
+</dom-module>

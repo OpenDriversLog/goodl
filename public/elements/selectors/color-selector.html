@@ -1,0 +1,65 @@
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../behaviors/odl-selectorbehavior.html">
+<dom-module id="color-selector">
+    <template>
+        <style include="odl-styles">
+            :host([invalid]) paper-dropdown-menu {
+                border: dotted red;
+            }
+        </style>
+        <paper-dropdown-menu label="Farbe" style="width:80px;">
+            <paper-menu id="innerMenu" attr-for-selected="color-id" selected="{{selectedId}}" class="dropdown-content">
+                <template is="dom-repeat" id="colorsList" items="[[colors]]" as="color">
+                    <paper-item color-id$="{{color.Id}}">
+                        <div style="width:40px;" class="horizontal layout">
+                            <span class="flex" style$="{{_getColorStyle(color.Color1)}}">&nbsp;</span>
+                            <span class="flex" style$="{{_getColorStyle(color.Color2)}}">{{color.Id}}</span>
+                            <span class="flex" style$="{{_getColorStyle(color.Color3)}}">&nbsp;</span>
+                        </div>
+                    </paper-item>
+                </template>
+            </paper-menu>
+        </paper-dropdown-menu>
+    </template>
+
+    <script>
+        Polymer({
+            is: "color-selector",
+            behaviors: [
+                OdlBehaviors.OdlSelectorBehavior
+            ],
+            properties: {
+                colors: {
+                    type: Array,
+                    value: []
+                },
+                colorsById: {
+                    type: Object,
+                    value: {}
+                },
+                selectedColor: {
+                    type: Object,
+                    value: {},
+                    notify:true,
+                    observer:"_selectedChanged"
+                },
+                observers: [
+                    '_selectedIdChanged(colorsById.*)'
+                ]
+            },
+            _getColorStyle : function(color) {
+                var style = "background-color:"+color+";";
+                return style;
+            },
+            ready: function() {
+                this.upperItemName="Color";
+                this.lowerItemName="color";
+            }
+
+
+        });
+    </script>
+
+</dom-module>

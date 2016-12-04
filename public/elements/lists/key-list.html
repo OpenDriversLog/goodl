@@ -1,0 +1,239 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../../components/neon-animation/neon-animation-runner-behavior.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/neon-animation/neon-animated-pages.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+<script type="text/javascript" src="../../js/jquery-dateformat.js"></script>
+
+
+<dom-module id="key-list">
+
+
+
+    <template>
+        <carbon-route id="keysRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+        <style include="list-styles"></style>
+        <style include="odl-styles"></style>
+
+        <iron-ajax id="ajaxKeyFetcher"
+                   url="../../../keyMan"
+                   params='{ "action": "read" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+        <iron-ajax id="ajaxKeyDeleter"
+                   url="../../../keyMan"
+                   content-type="application/x-www-form-urlencoded"
+                   body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}"
+                   on-response="_onDeleteReturned">
+        </iron-ajax>
+        <iron-ajax id="ajaxKeyGen"
+                   url="../../../keyMan"
+                   params='{ "action": "generate" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   on-response="_onKeyGenReturned"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="keys_pages" on-neon-animation-finish="_onPageChange" class="fit"
+                             on-neon-animation-finish="_onPageChange" class="fit"
+                             selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+                             selected-item="{{selectedPage}}">
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" class="lhm-tab-animation">
+                <div class="keyList vertical layout fit">
+                    <paper-toolbar>
+                        <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                        <span class="title">Schlüssel</span>
+                        <div class="horizontal layout searchBar">
+                            <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                            <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaKeyBox"></paper-badge>
+                            <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                            </paper-icon-button>
+                            <paper-icon-button  icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                            </paper-icon-button>
+                        </div>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="newKeyBtn" icon="icons:add-circle" title="neue Keys generieren" on-tap="_genKeys" >+
+                        </paper-icon-button>
+                    </paper-toolbar>
+
+                    <paper-material elevation="2" class="vertical layout flex">
+                        <iron-selector id="keylistMenu" attr-for-selected="keyid" selected="{{selected}}">
+                            <iron-list id="keyIronList" items="{{keys}}" as="key" class="vertical layout fit">
+                                <template>
+                                    <div class="list-item" keyid="{{key.GUID}}">
+                                        <paper-icon-item id="item_[[key.GUID]]">
+                                            <iron-icon icon="accessibility" title="Key" item-icon></iron-icon>
+                                            <paper-item-body id="body_[[key.GUID]]" >
+                                                <div class="title">[[key.GUID]] </div>
+                                                <div class="thin">User : [[key.UserId]]</div>
+                                                <div class="thin">[[_formatDate(key.Created)]]</div>
+                                            </paper-item-body>
+                                            <span secondary>
+                                                <paper-icon-button mini icon="icons:delete" on-tap="_deleteKey" key="[[key]]" title="Löschen"></paper-icon-button>
+                                            </span>
+                                        </paper-icon-item>
+
+                                    </div>
+                                </template>
+                            </iron-list>
+                        </iron-selector>
+                    </paper-material>
+
+                </div>
+            </neon-animatable>
+            <!-- Start page 1 / show new keys -->
+            <neon-animatable name="newKeys" class="lhm-tab-animation">
+                PLEASE SAVE THESE NEWLY GENERATED KEYS - they can't be requested a second time as only bcrypted values are stored.
+                <paper-button on-tap="_backToList">Back to list</paper-button>
+                <textarea label="New keys" id="newKeyArea" rows="20"></textarea>
+
+            </neon-animatable>
+        </neon-animated-pages>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "key-list",
+
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                Polymer.NeonAnimationRunnerBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                keys: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                selectedKey: {
+                    type: Object,
+                    notify: true
+                },
+                selected: {
+                    type: String,
+                    observer: '_selectedChanged',
+                    notify: true
+                },
+                t:{ type:Object,value:{} },
+                adminMode: {
+                    type:Boolean,
+                    value:false
+                }
+
+            },
+            observers:[
+                "updateById(keys.*)"
+            ],
+            _selectedChanged: function(newValue, oldValue) {
+                var idx = this.getIdxFromId(this.selected,this.keys);
+                this.fire('keys-clicked', {
+                    key: this.keys[idx]
+                });
+            },
+
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "keys";
+                this.listNameUpper = "Keys";
+                this.fetcher = this.$.ajaxKeyFetcher;
+                this.ironList = this.$$("#keyIronList");
+                this.mobileIronList = this.$$("#mobileKeyIronList");
+
+                this.$.ajaxKeyFetcher.generateRequest();
+
+            },
+            _genKeys: function() {
+                var cnt = parseInt(window.prompt("How many keys do you need?","1"));
+                if (cnt>0) {
+                    this.$.ajaxKeyGen.params["cnt"]=cnt;
+                    this.$.ajaxKeyGen.generateRequest();
+                }
+
+            },
+            _onKeyGenReturned: function(r) {
+                if (r.detail.response.Error) {
+                    showResultErrors(r,this.t);
+                    return
+                }
+                var keys = r.detail.response.Keys;
+                var keyCsv = "";
+                for (i=0;i<keys.length;i++) {
+                    var key = keys[i];
+                    keyCsv += key.GUID + "," + key.Password +"\r\n";
+                    this.keys.push(key)
+                }
+                this.$.newKeyArea.value = keyCsv;
+                this.set("routeParams.listSelectedName","newKeys");
+            },
+            _onDeleteReturned: function(r) {
+                if (r.detail.response.Error) {
+                    showResultErrors(r);
+                    return;
+                }
+                var keyIdx = -1;
+                for(i=0;i<this.keys.length;i++) {
+                    var key = this.keys[i];
+                    if(key.GUID==r.detail.response.Guid) {
+                        keyIdx = i;
+                        break;
+                    }
+                }
+                if(keyIdx!=-1) this.splice("keys",keyIdx,1);
+
+            },
+            _deleteKey:function(event) {
+                var e = event.model != null ? event.model.key : event.detail.key;
+                this.$.ajaxKeyDeleter.body.action = "delete";
+
+                this.$.ajaxKeyDeleter.body.key = JSON.stringify(e);
+                this.$.ajaxKeyDeleter.generateRequest();
+
+            },
+            _formatDate: function(d) {
+                var dateFormat = "E dd.MM.yyyy HH:mm";
+                var s = "";
+                if (d !== undefined) {
+                    s += $.format.date(new Date(d), dateFormat);
+                }
+                return s;
+            },
+            _backToList: function() {
+                this.set("routeParams.listSelectedName","list");
+
+            }
+
+        });
+    </script>
+
+</dom-module>

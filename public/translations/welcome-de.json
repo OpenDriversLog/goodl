@@ -1,0 +1,15 @@
+{
+  "welcome": "Herzlich Willkommen auf dieser leeren Seite!",
+  "title_welcome":"Willkommen.",
+  "welcome_Message":"Hallo! Schön Sie in unserer Betaphase begrüßen zu dürfen. Wenn Sie diese Zeilen lesen, haben Sie wohl bereits unseren Prototypen erhalten und wollen nun wissen wie man ihn benutzt. Folgen Sie dafür den auf dieser Seite beschriebenen Schritten und zögern Sie nicht uns bei Fragen zu kontaktieren. Ansonsten freuen Sie sich mit uns auf allerlei Dinge die Sie so noch nie gesehen haben und gestalten Sie mit uns zusammen das Fahrtenbuch der Zukunft.  ",
+  "welcome_selectDb":"zur Karte",
+  "welcome_uploadData":"Daten hochladen",
+  "welcome_statistic":"zur Statistik",
+  "GreatAlgorithms":"OpenDriversLog benutzt fortschrittliche Algorithmen zum Erkennen
+  Ihrer häufig aufgesuchten Orte.Dazu zählen neben Wohn - und Arbeitsort auch die Adressen ihrer Kunden und Freunde.
+  Dadurch helfen wir Ihnen dabei den Aufwand ihr Fahrtenbuch zu führen zu minimieren.
+  ",
+  "CurrentNews":"Aktuelle Neuerungen:",
+  "helpText_welcome":"Hier finden Sie einen kurzen Überblick über Ihre Möglichkeiten mit unserem Produkt."
+
+}

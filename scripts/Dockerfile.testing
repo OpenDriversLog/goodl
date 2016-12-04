@@ -1,0 +1,101 @@
+FROM golang:1.7
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        sudo \
+        curl \
+        git-core \
+        ssh \
+        golang-go.tools \
+        pkg-config \
+        glib-2.0 \
+        build-essential \
+     && rm -rf /var/lib/apt/lists/*
+
+# setup node stuff
+RUN gpg --keyserver pool.sks-keyservers.net --recv-keys 7937DFD2AB06298B2293C3187D33FF9D0246406D 114F43EE0176B71C7BC219DD50A3051F888C628D
+
+ENV NODE_VERSION 0.12.0
+ENV NPM_VERSION 2.7.0
+
+RUN curl -SLO "http://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
+    && curl -SLO "http://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
+    && gpg --verify SHASUMS256.txt.asc \
+    && grep " node-v$NODE_VERSION-linux-x64.tar.gz\$" SHASUMS256.txt.asc | sha256sum -c - \
+    && tar -xzf "node-v$NODE_VERSION-linux-x64.tar.gz" -C /usr/local --strip-components=1 \
+    && rm "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc \
+    && npm install -g npm@"$NPM_VERSION" \
+    && npm cache clear
+
+ENV PATH $PATH:/nodejs/bin
+
+# setup phantomjs, bower
+RUN npm install -g bower
+
+RUN adduser --disabled-login --gecos 'GoODL' goodl \
+    && passwd -d goodl
+
+RUN mkdir -p  /home/goodl/setup/ \
+    && mkdir /home/goodl/.ssh/
+
+RUN chown -R goodl:goodl /home/goodl
+
+ENV GOPATH /go
+ENV PATH /go/bin:$PATH
+ENV GOODLPATH $GOPATH/src/github.com/OpenDriversLog/goodl
+ENV ODLPATH $GOPATH/src/github.com/OpenDriversLog
+# setup http://agouti.org/
+RUN go get -v github.com/sclevine/agouti \
+    && go get -v github.com/onsi/ginkgo/ginkgo \
+    && go get -v github.com/onsi/gomega
+
+ENV ENVIRONMENT test
+ENV GO15VENDOREXPERIMENT 1
+RUN go get -v -u github.com/Masterminds/glide
+
+# setup http://agouti.org/
+RUN go get -v -u github.com/sclevine/agouti \
+    && go get -v -u github.com/onsi/ginkgo/ginkgo \
+    && go get -v -u github.com/onsi/gomega
+
+COPY scripts/init.testing /home/goodl/setup/init
+COPY DONTADDTOGIT/deploy_private /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
+
+# used if buildint outside of TheDeadServer's docker, otherwise just comment it out
+#RUN echo "YOURSERVER dockergitlab_app_1" >> /etc/hosts
+
+RUN echo "Host dockergitlab_app_1\n\tStrictHostKeyChecking no\n" >>  /home/goodl/.ssh/config
+RUN echo "Host gitlab.opendriverslog.de\n\tStrictHostKeyChecking no\n" >>  /root/.ssh/config
+RUN echo "Host dockergitlab_app_1\n\tStrictHostKeyChecking no\n" >>  /root/.ssh/config
+
+WORKDIR $GOODLPATH
+COPY . .
+
+RUN chmod 744 -R $GOODLPATH \
+    && chown goodl:goodl -R /home/goodl \
+    && chmod 744 /home/goodl/setup/init \
+    && mkdir -m 774 /databases
+
+RUN ls -l /go/src/ && ls -l /go/src/github.com/OpenDriversLog
+
+# make sure we test against latest versions of webfw & lib
+RUN rm -rf $GOODLPATH/vendor/github.com/OpenDriversLog/webfw || true \
+    && rm -rf /go/src/github.com/OpenDriversLog/webfw || true \
+    && git clone -b develop ssh://git@github.com:OpenDriversLog/webfw.git $ODLPATH/webfw
+
+RUN rm -rf $GOODLPATH/vendor/github.com/OpenDriversLog/goodl-lib || true \
+    && rm -rf /go/src/github.com/OpenDriversLog/goodl-lib || true \
+    && git clone -b develop ssh://git@github.com:OpenDriversLog/goodl-lib.git $ODLPATH/goodl-lib
+
+RUN rm -rf $GOODLPATH/vendor/github.com/OpenDriversLog/redistore || true \
+    && rm -rf /go/src/github.com/OpenDriversLog/redistore || true \
+    && git clone -b develop ssh://git@github.com:OpenDriversLog/redistore $ODLPATH/redistore
+
+# VOLUME ??? database?
+
+RUN bower install --allow-root --verbose
+
+EXPOSE 4000
+
+CMD ["/home/goodl/setup/init"]

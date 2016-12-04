@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+    <head lang="en">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        {[{if .Data.BASEURL}]}
+        <BASE href="{[{.Data.BASEURL}]}">
+        {[{end}]}
+        <!--  Android 5 Chrome Color -->
+        <meta name="theme-color" content="#01579b"/>
+        <title>Automagisch {[{template "title" .}]}</title>
+        <!-- {[{if .Debug}]} !!DEBUGGING!! {[{end}]} -->
+
+        <link type="text/css" rel="stylesheet" href="../public/css/odl.css">
+        <link type="text/css" rel="stylesheet" href="../public/css/landing.css">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link type="text/css" rel="stylesheet" href="../public/components/materialize/dist/css/materialize.min.css"  media="screen,projection"/>
+        <script type="text/javascript" src="{[{if .Debug}]}../public/components/jquery/dist/jquery.min.js{[{else}]}https://code.jquery.com/jquery-2.1.1.min.js{[{end}]}"></script>
+        <script type="text/javascript" src="../public/components/materialize/dist/js/materialize.min.js"></script>
+        <script type="text/javascript" src="../public/js/default.js"></script>
+        {[{template "head" .}]}
+    </head>
+    <body>
+        <header>
+            <div class="navbar-fixed">
+                <nav id="nav" class="light-blue darken-4 stick" style="float: none !important;">
+                    <div class="nav-wrapper">
+                              <a href="../landingpage/index.htm" class="brand-logo">Automagisch Fahrten-Tracker</a>
+                        <ul id="nav-main" class="right">
+
+                            <li>
+                                <a class="nav_link modal-trigger tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T "landingpage_selfEmployed"}]}" href="../landingpage/index.htm">
+                                    {[{.T.T "landingpage_selfEmployed"}]}
+                                    <!-- <i class="mdi-maps-map"></i> --></a>
+                            </li>
+                            <li>
+                                <a  class="nav_link tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T " landingpage_employee"}]}" id="nav_trips" href="../landingpage/employee.htm">
+                                    {[{.T.T "landingpage_employee"}]}
+                                    <!-- <i class="mdi-action-assignment"></i> --></a>
+                            </li>
+                            <li>
+                                <a class="nav_link modal-trigger tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T "landingpage_accountant"}]}" href="../landingpage/accountant.htm">
+                                    {[{.T.T "landingpage_accountant"}]}
+                                    <!-- <i class="mdi-maps-map"></i> --></a>
+                            </li>
+                            <li>
+                                <a class="nav_link modal-trigger tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T "landingpage_fleetOwner"}]}" href="../landingpage/fleet.htm">
+                                    {[{.T.T "landingpage_fleetOwner"}]}
+                                    <!-- <i class="mdi-maps-map"></i> --></a>
+                            </li>
+
+                        </ul>   <!-- nav-main -->
+
+                        <ul id="slide-out" class="side-nav">
+
+                            <li>
+                                <a class="nav_link modal-trigger tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T "landingpage_selfEmployed"}]}" href="../landingpage/index.htm">
+                                    {[{.T.T "landingpage_selfEmployed"}]}
+                                    <!-- <i class="mdi-maps-map"></i> --></a>
+                            </li>
+                            <li>
+                                <a  class="nav_link tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T " landingpage_employee"}]}" id="nav_trips" href="../landingpage/employee.htm">
+                                    {[{.T.T "landingpage_employee"}]}
+                                    <!-- <i class="mdi-action-assignment"></i> --></a>
+                            </li>
+                            <li>
+                                <a class="nav_link modal-trigger tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T "landingpage_accountant"}]}" href="../landingpage/accountant.htm">
+                                    {[{.T.T "landingpage_accountant"}]}
+                                    <!-- <i class="mdi-maps-map"></i> --></a>
+                            </li>
+                            <li>
+                                <a class="nav_link modal-trigger tooltipped" data-position="bottom" data-delay="20" data-tooltip="{[{.T.T "landingpage_fleetOwner"}]}" href="../landingpage/fleet.htm">
+                                    {[{.T.T "landingpage_fleetOwner"}]}
+                                    <!-- <i class="mdi-maps-map"></i> --></a>
+                            </li>
+
+                        </ul>   <!-- side-nav -->
+                        <a href="#" data-activates="slide-out" class="button-collapse light-blue darken-4"><i class="mdi-navigation-menu"></i></a>
+                    </div>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+            <div class="row error" id="error" {[{if .ErrorMessage}]}style="display:inline;"{[{end}]}>
+                <div class="col s12 m12">
+                    <div class="card amber darken-4">
+                        <div class="card-content black-text">
+                            <span class="card-title">{[{.T.T "error"}]}!</span>
+
+                            <p id="eb" >{[{.ErrorMessage}]} <br/><b>
+                            </b>
+                            </p>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row warning" id="warning" {[{if .WarningMessage}]}style="display:inline;"{[{end}]}>
+                <div class="col s12 m12">
+                    <div class="card amber darken-1">
+                        <div class="card-content black-text">
+                            <span class="card-title">{[{.T.T "Oops"}]}!</span>
+                            <p id="wb" >{[{.WarningMessage}]}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row statusMessage" id="status" {[{if .StatusMessage}]}style="display:inline;"{[{end}]}>
+                <div class="col s12 m12">
+                    <div class="card light-blue lighten-4">
+                        <div class="card-content black-text">
+                            <span class="card-title black-text">{[{.T.T "status"}]}</span>
+                            <p id="sb" >{[{.StatusMessage}]} </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {[{template "content" .}]}
+
+            <div style="min-height:20px;">&nbsp;</div>
+        </main>
+        <footer class="page-footer light-blue darken-4">
+            <div class="container">
+                <div class="row">
+                    <div class="col l4 s6">
+                        <h5 href="#top" class="brand-logo" style="padding-left:20px;">Automagisch</h5>
+                        <ul>
+                            <li><a class="nav_link" href="../landingpage/index.htm"><i class="mdi-action-home"></i>HOME</a> </li>
+                            <li><a class="nav_link" href="../landingpage/index.htm#function"><i class="mdi-action-shopping-basket"></i>PRODUKT</a></li>
+                            <li><a class="nav_link" href="../landingpage/team.htm"><i class="mdi-action-account-child"></i>TEAM</a></li>
+                            <li><a class="nav_link" href="../landingpage/index.htm#beta"><i class="mdi-social-public"></i>BETA</a></li>
+                            <li><a class="nav_link" href="../landingpage/contact.htm"><i class="mdi-communication-forum"></i>KONTAKT</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="col offset-l2 l4 s6">
+                        <h5 href="#top" class="brand-logo" style="padding-left:20px;">More</h5>
+                        <ul>
+                            <li><a class="nav_link" href="../landingpage/press.htm"><i class="mdi-action-home"></i>Presse</a> </li>
+                            <li><a class="nav_link" href="https://www.facebook.com/pages/Opendriverslog/686616941465096"><i class="mdi-action-shopping-basket"></i><span class="thin">Facebook:</span> OpenDriversLog</a></li>
+                            <li><a class="nav_link" href="../landingpage/impress.htm"><i class="mdi-social-public"></i>{[{.T.T "Impressum"}]}</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-copyright">
+                <div class="container white-text">
+                    © 2015 Copyright automagisch
+                    <a class="white-text right" href="../landingpage/impress.htm">{[{.T.T "Impressum"}]}</a>
+                </div>
+            </div>
+        </footer>
+        <script type="text/javascript">
+         {[{if .Data.Translations}]}
+         var translations = {[{.Data.Translations}]};
+         {[{end}]}
+         $(function(){
+             $('.modal-trigger').leanModal();
+             $('.materialboxed').materialbox();
+             // $('select').material_select();
+             $(".button-collapse").sideNav();
+
+         });
+
+        </script>
+    </body>
+
+</html>

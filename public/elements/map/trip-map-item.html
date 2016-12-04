@@ -1,0 +1,276 @@
+<link rel="import" href="../../components/polymer/polymer.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-map.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-geojson.html">
+<link rel="import" href="keypoint-map-item.html">
+<link rel="import" href="contact-map-item.html">
+<link rel="import" href="../odl/odl-theme.html">
+
+<dom-module id="trip-map-item">
+
+    <template>
+        <style include="odl-styles"></style>
+        <template is="dom-repeat" items="{{trip.Tracks}}" as="track">
+            <leaflet-geojson opacity="[[tripOpacity]]" container="[[container]]" color="{{color}}"
+                             data="{{computeParsedTrack(track)}}"></leaflet-geojson>
+        </template>
+        <keypoint-map-item opacity="[[tripOpacity]]" color="{{color}}" id="startKp"
+                           container="[[container]]" keypoint="{{trip.StartKeyPoint}}"
+                           matching-contact="{{startContact}}"></keypoint-map-item>
+        <keypoint-map-item opacity="[[tripOpacity]]" color="{{color}}" id="endKp"
+                           container="[[container]]" keypoint="{{trip.EndKeyPoint}}"
+                           matching-contact="{{endContact}}">
+        </keypoint-map-item>
+
+        <template is="dom-repeat" items="[[mergedTrackDetails]]" index-as="idx" as="mTrack">
+            <keypoint-map-item
+                    opacity="[[tripOpacity]]" color="{{color}}"
+                    id="mergedKp_[[mTrack.StartKeyPointInfo.KeyPointId]]" container="[[container]]"
+                    keypoint="{{mTrack.StartKeyPointInfo}}" is-merged></keypoint-map-item>
+        </template>
+    </template>
+
+    <script>
+        function getTimeString(ms) {
+            var dateFormat = "dd.MM.yyyy HH:mm";
+            return $.format.date(new Date(ms), dateFormat);
+        }
+        function getMarkerTitle(trip, contact, address,isStartKP,kpId) {
+            return getMarkerTitleFromDetails(trip.StartKeyPoint.StartTime,trip.EndKeyPoint.StartTime,trip.Id,contact,address,
+                    isStartKP,kpId,false);
+        }
+        function getMarkerTitleFromDetails(StartTime,EndTime,tripId,contact,address,isStartKP,kpId,isBreak) {
+            var kp = null;
+            var t = "";
+            if(isStartKP) {
+                t += getTimeString(StartTime) + " - " + getTimeString(EndTime);
+            } else {
+                t += getTimeString(StartTime);
+                if(EndTime) {
+                    t+= " - " + getTimeString(EndTime);
+                }
+            }
+
+            t+="<br/>";
+            if(isBreak) {
+                t+="<i>Zwischenstop</i>";
+            }
+            if(contact) {
+                // getContactHTML is defined in contact-map-item.
+                t += getContactHTML(contact,false,kpId);
+            } else if (address) {
+                t += getAddressHTML(address,false,false,tripId,isStartKP,kpId,isBreak);
+            } else {
+                t += "Unbekannt";
+            }
+            return t;
+        }
+        Polymer({
+            is: "trip-map-item",
+            properties: {
+                trip: {
+                    type: Object,
+                    value: {},
+                    notify: true,
+                    observer: "_tripChanged"
+                },
+                color: {
+                    type:String,
+                    computed:"getColor(trip,trip.highlighted)"
+                },
+                container: Object,
+                contactsById: {
+                    type: Object,
+                    value: {},
+                    observer: "_contactsByIdChanged"
+                },
+                endContact: {
+                    type: Object,
+                    value: undefined,
+                    notify: true
+                },
+                startContact: {
+                    type: Object,
+                    value: undefined,
+                    notify: true
+                },
+                tripOpacity: {type:Number,
+                    value:0.7},
+                mergedTrackDetails: {
+                    type:Array,
+                    computed:"_getMergedTracks(trip,trip.TrackDetails)"
+                }
+            },
+            _getMergedTracks : function(trip,trackDetails) {
+                if(trackDetails && trackDetails.length>0) {
+                    var ts = [];
+                    $.each(trackDetails,function(){
+                        if(trip.StartKeyPoint.KeyPointId!=this.StartKeyPointInfo.KeyPointId) {
+                            this.StartKeyPointInfo.Latitude = this.StartKeyPointInfo.Lat;
+                            this.StartKeyPointInfo.Longitude = this.StartKeyPointInfo.Lng;
+                            ts.push(this);
+                        }
+                    });
+                    return ts;
+                }
+                return [];
+            },
+            getColor: function(trip,isHighlighted) {
+                if(trip && trip.Device) {
+                    return isHighlighted ? "#e65100" : trip.Device.Color.Color2;
+                }
+                return "#FFFFFF";
+            },
+            observers:[
+                '_contactsByIdChanged(contactsById.*)',
+                '_tripChanged(trip.StartContactId)',
+                '_tripChanged(trip.EndContactId)',
+                '_tracksChanged(trip.Tracks)',
+                'highlightChanged(trip.highlighted)',
+                '_hiddenChanged(trip.hidden)'
+            ],
+            _hiddenChanged: function(newVal) {
+                if(newVal) {
+                    this.set("tripOpacity",0);
+                } else if(newVal===false) {
+                    this.set("tripOpacity",0.7);
+                }
+
+            },
+            highlightChanged:function(newVal) {
+                var that = this;
+                if(newVal) {
+                    var lines = [];
+
+                    $.each(
+                            that.querySelectorAll('leaflet-geojson'), function() {
+                                if(this.feature!==undefined) {
+                                    lines.push(this.feature);
+                                    this.feature.setZIndex(10000);
+                                    this.feature.setStyle({
+                                        weight: 10
+                                    });
+                                }
+                            });
+                    if(this.$.startKp.feature) this.$.startKp.feature.setZIndex(10000);
+                    if(this.$.endKp.feature) this.$.endKp.feature.setZIndex(10000);
+                    if (lines.length>0)
+                        map.fitBounds(L.featureGroup(lines).getBounds(),
+                                {maxZoom:15});
+                } else {
+                    $.each(
+                            that.querySelectorAll('leaflet-geojson'), function() {
+                                if(this.feature!==undefined) {
+                                    this.feature.setZIndex(0);
+                                    this.feature.setStyle({
+                                        weight: 5
+                                    });
+                                }
+                            });
+                }
+                if(this.$.startKp.feature) this.$.startKp.feature.setZIndex(0);
+                if(this.$.endKp.feature) this.$.endKp.feature.setZIndex(0);
+
+            },
+            updateMarkerTitles: function() {
+                if(this.trip) {
+                    this.$.startKp.markerTitle = getMarkerTitle(this.trip,this.startContact,this.trip.StartAddress,true,this.trip.StartKeyPointId);
+                    this.$.endKp.markerTitle = getMarkerTitle(this.trip,this.endContact,this.trip.EndAddress,false,this.trip.EndKeyPointId);
+                }
+                var that = this;
+                $.each(this.mergedTrackDetails,function(){
+                    var kp = that.$$("#mergedKp_"+this.StartKeyPointInfo.KeyPointId);
+                    if(kp==undefined) {
+                        that.async(function(){
+                            this.updateMarkerTitles();
+                        },500);
+                    } else {
+                        var kpi = this.StartKeyPointInfo;
+                        var adr = {
+                            "Id": -1,
+                            "Latitude" : kpi.Lat,
+                            "Longitude":kpi.Lng,
+                            "Street":kpi.Street,
+                            "Postal":kpi.Postal,
+                            "City":kpi.City,
+                            "Additional1":"",
+                            "Additional2":"",
+                            "HouseNumber":kpi.HouseNumber,
+                            "Title":"",
+                            "GeoZones":[]
+                        };
+                        kp.markerTitle = getMarkerTitleFromDetails(kpi.MinTime,kpi.MaxTime,that.trip.Id,null,adr,false,kpi.KeyPointId,true);
+                    }
+                });
+            },
+            _contactsByIdChanged: function (newVal, oldVal) {
+                this.updateContacts();
+            },
+            _tracksChanged: function(ts) {
+                this.async(function(){ // workaround for tracks not appearing after trip merge
+                    var c = this.container;
+                    $.each(
+                            this.querySelectorAll('leaflet-geojson'), function() {
+                                if(this.feature!==undefined) {
+                                    this.feature.addTo(c);
+                                }
+                            });
+                    this.$.startKp.attachAll();
+                    this.$.endKp.attachAll();
+                })
+            },
+            updateContacts: function() {
+                if (this.trip != undefined && this.contactsById != undefined) {
+                    if (this.trip.EndContactId != null) {
+                        var ec = this.contactsById[this.trip.EndContactId];
+                        if (ec != null) {
+                            this.endContact = ec;
+                        } else {
+                            console.warn("EndContact not found in contactsById!",this.trip.EndContactId,this.contactsById);
+                            this.endContact = undefined;
+                        }
+                    } else {
+                        this.endContact = undefined;
+                    }
+                    if (this.trip.StartContactId != null) {
+                        var sc = this.contactsById[this.trip.StartContactId];
+                        if (sc != null) {
+                            this.startContact = sc;
+                        }
+                        else {
+                            console.warn("StartContact not found in contactsById!",this.trip.StartContactId,this.contactsById);
+
+                            this.startContact = undefined;
+                        }
+                    } else {
+                        this.startContact = undefined;
+                    }
+
+                } else {
+                    this.endContact = undefined;
+                    this.startContact = undefined;
+                }
+
+                this.updateMarkerTitles();
+            },
+            computeParsedTrack: function (trackData) {
+                return $.parseJSON(trackData);
+            },
+            _tripChanged: function (newVal, oldVal) {
+                this.updateContacts();
+            },
+            detached: function() {
+                this.$.startKp.detached();
+                this.$.endKp.detached();
+            },
+            computeContact: function (contactId) {
+                if (contactId == null || contactId < 1) {
+                    return undefined;
+                } else {
+                    return this.contactsById[contactId];
+                }
+            }
+        });
+    </script>
+
+</dom-module>
+

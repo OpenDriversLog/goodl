@@ -1,0 +1,198 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/neon-animation/neon-animated-pages.html">
+<link rel="import" href="../lists/beta-user-list.html">
+<link rel="import" href="../../components/paper-card/paper-card.html">
+<link rel="import" href="../../components/paper-input/paper-textarea.html">
+<dom-module id="page-beta-man">
+    <template>
+        <carbon-route id="betaManRoute" route="{{route}}" data="{{routeParams}}" pattern="/:selectedName" tail="{{tail}}"></carbon-route>
+
+        <iron-ajax id="ajaxBetaUserMailSender"
+                   url="../../../betaMan"
+                   content-type="application/x-www-form-urlencoded" method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"
+                   on-response="_mailResponse"
+        >
+        </iron-ajax>
+        <style include="odl-styles"></style>
+        <more-route-selector selectedParams="{{params}}">
+
+            <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="betaManPager" class="fill"
+                                 attr-for-selected="name"
+                                 selected="{{routeParams.selectedName}}"
+            >
+                <div id="sendMail" name="sendMail" class="fit horizontal layout">
+                    <paper-card style="width:500px;height:700px;">
+                        <paper-toolbar>
+                            <div class="title">Mail versenden</div>
+                            <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        </paper-toolbar>
+                        <div class="card-content flex" style="width:500px;height:700px;">
+
+                            <div class="vertical layout fit" style="overflow:auto;width:500px;height:600px;">
+                                <div>
+                                    <paper-input label="Betreff" id="Betreff" name="Betreff" value="{{subject}}"/>
+                                </div>
+                                <div>
+                                    <label for="surveyId">LimeSurveyId</label>
+                                    <paper-input label="surveyId" id="surveyId" name="surveyId" value="{{surveyId}}"/>
+                                </div>
+                                <div >
+                                    <paper-textarea label="Nachricht" id="message" name="message" value="{{message}}"></paper-textarea>
+                                </div>
+                                <div>
+                                    <paper-checkbox id="wants2BePilotCb" checked="{{wants2BePilotFilter}}" name="Wants2BePilot">
+                                        Wants 2 be pilot
+                                    </paper-checkbox>
+                                    <paper-checkbox id="wantsNewsletterCb" checked="{{wantsNewsletterFilter}}" name="WantsNewsletter">
+                                        Wants newsletter
+                                    </paper-checkbox>
+                                </div>
+                                <div class="buttons">
+                                    <paper-button on-tap="sendMail">Und raus damit!
+                                        <i class="mdi-content-send right"></i>
+                                    </paper-button>
+                                </div>
+                            </div>
+                        </div>
+                    </paper-card>
+                    <paper-card class="flex">
+                        <div>
+                            <beta-user-list route="{{tail}}" is-active="{{isActive}}" id="betaUserList" beta-users="{{betaUsers}}" with-selector="true"></beta-user-list>
+                        </div>
+                    </paper-card>
+                </div>
+            </neon-animated-pages>
+        </more-route-selector>
+    </template>
+    <script>
+
+        Polymer({
+            is: "page-beta-man",
+            behaviors: [OdlBehaviors.OdlEditBehavior,
+                OdlBehaviors.OdlBehavior],
+            properties: {
+                betaUsers: {
+                    type: Array,
+                    value: []
+                },wants2BePilotFilter: {
+                    type:Boolean,
+                    value:false,
+                    observer:"_autoCheck"
+                },loading: {
+                    type:Boolean,
+                    value:false,
+                    notify:true
+                },
+                wantsNewsletterFilter: {
+                    type:Boolean,
+                    value:false,
+                    observer:"_autoCheck"
+                },
+                message: {
+                    type:String,
+                    value:"_*_Anrede_*_,"+
+                    "\r\n\r\n_*_SurveyLink_*_"
+                },
+                surveyId: {
+                    type:String,
+                    value:"374165"
+                },
+                subject: {
+                    type:String,
+                    value:"Umfrage zur Teilnahme am Beta-Test von OpenDriversLog"
+                },
+                isActive:Boolean,
+                route: Object
+            },
+            observers: [
+                "_rPathChanged(route.path,isActive)"
+            ],
+            _rPathChanged: function(rPath,isActive) {
+                if(isActive)
+                    this.async(function(){
+                        if(this.route.path=="" && this.isActive) {
+                            this.set("route.path","/sendMail");
+                        }
+                    },500);
+            },
+            _autoCheck:function() {
+                var that = this;
+                $.each(this.betaUsers,function(i,usr){
+                    usr.selected = (that.wantsNewsletterFilter && usr.WantsNewsletter) || (that.wants2BePilotFilter && usr.Wants2BePilot);
+                    that.$.betaUserList.notifyAboutChange(usr,"selected");
+
+                });
+
+            },
+            sendMail:function() {
+                var usrIds = [];
+                $.each(this.betaUsers,function(i,usr) {
+                    if(usr.selected) {
+                        usrIds.push(usr.Id.toString());
+                    }
+                });
+                if (usrIds.length>0) {
+                    var data = {
+                        Subject:this.subject,
+                        Message:this.message,
+                        SurveyId:this.surveyId,
+                        UsrIds:usrIds
+                    };
+                    this.$.ajaxBetaUserMailSender.body={
+                        action:"sendMail",
+                        data:JSON.stringify(data)
+                    };
+                    this.async(function(){
+                        this.$.ajaxBetaUserMailSender.generateRequest();
+                    });
+                } else {
+                    showError("Please select at least 1 user (click on the usr icon!)");
+                }
+
+            },_onTranslationUpdate:function(t) {
+                if(this.t) {
+                    this.navFunctions=[
+                        /* {key:'testerEdit',title: 'TesterEdit', icon: 'account-circle', href:this.urlFor("testerEdit")},
+                         {key:'sendMail',title: 'SendMail', icon: 'dns', href:this.urlFor("sendMail")},*/
+                    ];
+                    this.fire("new-nav-functions");
+                }
+            },
+            _mailResponse: function(request) {
+                if(request.detail.response == null) {
+                    debugger;
+                    showError(T("Error") + ": " + request.detail.statusText)
+                }
+                else if(request.detail.response.Success == false) {
+                    showError(T("Error") + ": " + request.detail.response.ErrorMessage);
+                } else {
+                    showStatus("Success : " + request.detail.response.ErrorMessage)
+                }
+            },
+            ready: function() {
+                this.$.ajaxBetaUserMailSender.set("url",getReplacedAjaxUri(this.$.ajaxBetaUserMailSender.url));
+
+                this.routeExtension="/:betaManSelectedName"
+                this.navFunctions=[
+                    /* {key:'testerEdit',title: 'TesterEdit', icon: 'account-circle', href:this.urlFor("testerEdit")},
+                     {key:'sendMail',title: 'SendMail', icon: 'dns', href:this.urlFor("sendMail")},*/
+                ];
+                this.fire("new-nav-functions");
+            }
+
+        });
+    </script>
+</dom-module>

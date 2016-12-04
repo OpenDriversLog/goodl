@@ -1,0 +1,217 @@
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+
+<link rel="import" href="date-dialog.html">
+<!-- <link rel="import" href="../elements/page-slider.html"> -->
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../lists/device-list.html">
+
+<dom-module id="device-time-select">
+
+    <template>
+
+        <style include="odl-styles"></style>
+
+        <iron-ajax id="ajaxTimes"
+                   url="../../../jsonApi"
+                   params='{"ajax":"minMaxTime"}'
+                   handle-as="json"
+                   on-response="updateDateSpan"
+                   debounce-duration="300"></iron-ajax>
+
+        <div>
+            <div>
+
+                <paper-toolbar class="fit" hidden$="{{!showTitleBar}}">
+                    <span class="title">Zeitraum</span>
+                </paper-toolbar>
+
+                <div style="padding-top:2em;"> &nbsp; </div>
+                <paper-input on-click="showStartDatePicker" title="Start" label="Start" value="{{startDateString}}"
+                             class="datepicker hide-on-small-only" size='15' id="date_start"></paper-input>
+                <paper-input on-click="showEndDatePicker" title="Start" label="Ende" value="{{endDateString}}"
+                             class="datepicker hide-on-small-only" size='15' id="date_end"></paper-input>
+
+                <a on-click="showDevicesPicker" class="clickable center">
+                    <iron-icon icon="icons:class" item-icon></iron-icon>
+                    Geräte </a>
+
+            </div>
+
+            <paper-dialog id="endDatePage" class="default_modal">
+                <div class="modal-content edit_padding">
+                    <date-dialog id="endPicker" on-cancel="showMainPage" on-confirm="showMainPage"
+                                 min-date={{minTime}}
+                                 date="{{internalEnd}}"></date-dialog>
+                    <br/>
+                    <br/>
+                </div>
+            </paper-dialog>
+
+            <paper-dialog id="startDatePage" class="default_modal">
+                <div class="modal-content edit_padding">
+                    <date-dialog id="startPicker" on-cancel="showMainPage" on-confirm="showMainPage"
+                                 max-date="{{maxTime}}"
+                                 date="{{internalStart}}"></date-dialog>
+
+                    <br/>
+                    <br/>
+                </div>
+            </paper-dialog>
+
+
+            <paper-dialog id="devicePage" class="default_modal">
+                <!-- design brakes if included below, above or anyway else -->
+                <div id="mainTimeSelectPage">
+                    <device-list colors="[[colors]]"
+                                 colors-by-id="[[colorsById]]"
+                                 id="deviceList"
+                                 devices="{{devices}}"
+                                 devices-by-id="{{devicesById}}"
+                                 showTitleBar="false"></device-list>
+                </div>
+                <div class="buttons">
+                    <paper-button on-tap="confirm" dialog-confirm autofocus>OK</paper-button>
+                </div>
+            </paper-dialog>
+        </div>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "device-time-select",
+            properties: {
+                minTime: Number,
+                maxTime: Number,
+                curStart: {type: Date, observer:"_startExtChanged", notify:true},
+                curEnd: {type: Date, observer:"_endExtChanged", notify:true},
+                endDateString: {type:String, notify:true},
+                startDateString: {type:String, notify:true},
+                internalEnd: {type: Date, observer:"_endIntChanged"},
+                internalStart: {type: Date, observer:"_startIntChanged"},
+                devices: {
+                    type: Array,
+                    notify: true
+                },
+                colors : {
+                    type: Array,
+                    notify: true,
+                    value: []
+                },
+                colorsById: {
+                    type: Object,
+                    value:{}
+                },
+                devicesById: {
+                    type: Object,
+                    notify: true,
+                    value: {}
+                }
+            },
+
+
+            ready: function () {
+                // access a local DOM element by ID using this.$
+                /* var lookup = allDevicesGotResponse.Result; */
+                this.$.ajaxTimes.set("url",getReplacedAjaxUri(this.$.ajaxTimes.url));
+                this.$.ajaxTimes.generateRequest();
+
+
+            },
+            showMainPage: function() {
+                var dialog = this.$.startDatePage;
+                if (dialog) {
+                    dialog.close();
+                }
+                dialog = this.$.endDatePage;
+                if (dialog) {
+                    dialog.close();
+                }
+
+            },
+            _startIntChanged: function(newVal, oldVal) {
+                if (newVal !== null) {
+                    this.startDateString = this.$.startPicker.dateFormat(newVal,'DD.MM.YYYY');
+                }
+                this.showMainPage();
+            },
+            _startExtChanged: function(newVal, oldVal) {
+                if (newVal !== null) {
+                    this.internalStart = newVal;
+                }
+            },
+            _endIntChanged: function(newVal, oldVal) {
+                if (newVal !== null) {
+                    if(newVal.getHours()!=23) {
+                        this.internalEnd = new Date(newVal.getFullYear(),newVal.getMonth(),newVal.getDate(),23,59,59,999);
+                    }
+                    this.endDateString = this.$.endPicker.dateFormat(newVal,'DD.MM.YYYY');
+                }
+                this.showMainPage();
+            },
+            _endExtChanged: function(newVal, oldVal) {
+                this.internalEnd = newVal;
+            },
+            showStartDatePicker: function() {
+                var dialog = this.$.startDatePage;
+                if (dialog) {
+                    dialog.open();
+                }
+            },
+            showEndDatePicker: function() {
+                var dialog = this.$.endDatePage;
+                if (dialog) {
+                    dialog.open();
+                }
+                // https://github.com/bendavis78/paper-date-picker/issues/8#issuecomment-126411397
+                /* this.async(function() {
+                 this.$.endPicker.$.datePicker.$.calendar.updateSize();
+                 this.$.endPicker.$.datePicker.$.calendar.scrollToDate(this.internalEnd);
+                 });*/
+            },
+            showDevicesPicker: function() {
+                var dialog = this.$.devicePage;
+                if (dialog) {
+                    dialog.open();
+                }
+            },
+            updateDateSpan: function(response) {
+                if(response.detail.response != null) {
+                    this.minTime = new Date(response.detail.response.MinTime);
+                    this.maxTime = new Date(response.detail.response.MaxTime);
+
+                    this.curEnd = new Date(this.maxTime);
+                    this.curStart = new Date(this.curEnd - 7 * 24 * 60 * 60 * 1000);
+                }
+            },
+
+            updateSavedValues: function() {
+                this.cloneInternals();
+            },
+            cloneInternals: function() {
+                //this.notifyPath('devices', this.devices);
+                this.set('curStart',this.internalStart);
+                this.set('curEnd',this.internalEnd);
+
+                //TODO: what an ugly workaround for notifying of device checked changes!
+                this.devices = $.extend(true, [], this.devices);
+            },
+            confirm: function() {
+                this.updateSavedValues();
+            }
+        });
+
+
+
+
+
+
+
+
+
+    </script>
+
+</dom-module>

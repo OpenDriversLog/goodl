@@ -1,0 +1,240 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../edits/device-edit.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="device-list-item.html">
+<link rel="import" href="../selectors/color-selector.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+
+<dom-module id="device-list">
+
+
+    <template>
+        <carbon-route id="devicesRoute" data="{{routeParams}}" route="{{route}}"
+                      tail="{{tail}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+
+
+        <style include="list-styles"></style>
+        <style include="odl-styles"></style>
+        <iron-ajax id="ajaxDeviceFetcher"
+                   url="../../../deviceMan"
+                   params='{ "action": "read", "devices": "1" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="devices_pages" style="overflow:auto;" class="fit"
+                     on-neon-animation-finish="_onPageChange" class="fit"
+                     selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                     attr-for-selected="name"
+                     selected-item="{{selectedPage}}"
+                     entry-animation="fade-in-animation"
+                     exit-animation="fade-out-animation">
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" on-neon-animation-finish="_onPageChange" entry-animation="fade-in-animation" exit-animation="fade-out-animation"
+                             class="lhm-tab-animation">
+
+                <div>
+                    <paper-toolbar hidden$="{{!showTitleBar}}">
+                        <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                        <span class="title">[[t.devices]]</span>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <!--<paper-icon-button id="newDeviceBtn" icon="social:person-add" on-tap="_newDevice" >+ </paper-icon-button> -->
+                    </paper-toolbar>
+
+                    <div>
+                        <template is="dom-repeat" id="deviceRepeatList" items="{{devices}}"
+                                  as="device" class="list">
+                            <div class="list-item" deviceid="{{device.Id}}">
+                                <device-list-item class$="[[ifTrue(isMobile,'mobile','desktop')]]" on-device-checked-changed="_deviceCheckedChanged" on-edit="_edit" on-delete="_delete"
+                                                  show-edit="[[showEdit]]" colors="[[colors]]"
+                                                  colors-by-id="[[colorsById]]" device="{{device}}"
+                                ></device-list-item>
+
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+            </neon-animatable>
+            <!-- Start page 1 / edit Device -->
+            <neon-animatable name="edit"
+                             class="lhm-tab-animation">
+                <device-edit id="deviceEdit" cars="{{cars}}" cars-by-id="{{carsById}}"
+                             device="{{selectedDevice}}" on-back="backToList"
+                             drivers="{{drivers}}"
+                             drivers-by-id="{{driversById}}"
+                             on-deleted="backToList" on-canceled="backToList"
+                             on-created="backToList" on-updated="backToList"
+                             colors="[[colors]]"
+                             colors-by-id="[[colorsById]]"
+                             loading="{{editLoading}}"
+                             class$="fit scroll [[ifTrue(isMobile,'mobile','desktop')]]"
+                             route="{{tail}}"
+
+                ></device-edit>
+            </neon-animatable>
+        </neon-animated-pages>
+    </template>
+
+    <script>
+        Polymer({
+            is: "device-list",
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            properties: {
+                devices: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                colors: {
+                    type: Array,
+                    value: function() {
+                        return [];
+                    }
+                },
+                colorsById: {
+                    type: Object,
+                    value: function() {
+                        return {};
+                    },
+                    notify:true
+                },
+                drivers: {
+                    type: Array,
+                    notify: true
+                },
+                driversById: {
+                    type: Object,
+                    value: {}
+                },
+                cars: {
+                    type: Array,
+                    value: [],
+                    notify:true
+                },
+                carsById: {
+                    type: Object,
+                    value: {},
+                    notify:true
+                },
+                selectedDevice: {
+                    type: Object,
+                    notify: true
+                },
+                showTitleBar: {
+                    type:Boolean,
+                    value:true
+                },
+                devicesById: {
+                    type: Object,
+                    notify: true,
+                    value: {}
+                },
+                showEdit: {
+                    type: Boolean,
+                    value:false
+                },
+                autoFetch: {
+                    type: Boolean,
+                    value:true
+                },
+                curActiveChanges: {
+                    type:Number,
+                    value:0
+                }
+            },
+            observers:[
+                "updateById(devices.*)"
+            ],
+            animationConfig: {
+                type: Object,
+                value: function() {
+                    return {
+                        'entry': [{
+                            name: 'fade-in-animation',
+                            node: this.$.deviceList
+                        }],
+                        'exit': [{
+                            name: 'fade-out-animation',
+                            node: this.$.deviceList
+                        }, {
+                            name: 'hero-animation',
+                            id: 'hero',
+                            fromPage: this
+                        }]
+                    };
+                }
+            },
+            _newDevice: function(event) {
+                this.set("routeParams.selectedId",-1);
+                this.set("routeParams.listSelectedName","edit");
+            },
+            showDetails: function(event) {
+                this.this.set("routeParams.selectedId",event.model.device.Id);
+                this.async(function(){
+                    this.set("routeParams.listSelectedName","details");
+                });
+            },
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "devices";
+                this.listNameUpper = "Devices";
+                this.fetcher = this.$.ajaxDeviceFetcher;
+                if(this.autoFetch) {
+                    this.$.ajaxDeviceFetcher.generateRequest();
+                }
+            },backToPage: function(event) {
+                switch(event.detail.type) {
+                    case "car" :
+                    {
+                        this.set("routeParams.listSelectedName","edit");
+                        break;
+                    }
+                    case "device" : this.set("routeParams.listSelectedName","list");break;
+                }
+            },
+            delete: function(e) {
+                e.stopPropagation();
+                this.$.deviceEdit.delete_item(e);
+            },
+            _deviceCheckedChanged: function(e) {
+                this.curActiveChanges++;
+                var that = this;
+                window.setTimeout(function(){
+                    that.curActiveChanges--;
+                    if(!that.curActiveChanges) {
+                        that.fire("devices-checked-changed")
+                    }
+                },5000)
+
+            }
+        });
+    </script>
+
+</dom-module>

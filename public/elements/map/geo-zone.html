@@ -1,0 +1,74 @@
+<link rel="import" href="../../components/polymer/polymer.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-map.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-rectangle.html">
+
+<dom-module id="geo-zone">
+    <template>
+        <leaflet-rectangle fill="true" fill-color="{{fillColor}}" weight="1" id="rect" container="{{container}}" north-east="{{northEast}}" south-west="{{southWest}}"><content></content></leaflet-rectangle>
+    </template>
+    <script>
+
+        Polymer({
+            is: "geo-zone",
+            properties: {
+                geoZone: {
+                    type: Object,
+                    observer: '_zoneChanged',
+                    value: {},
+                    notify:true
+                },
+                northEast : Object,
+                southWest : Object,
+                container: {
+                    type:Object,
+                    value:undefined
+                },
+                contact: {
+                    type:Object,
+                    value:undefined,
+                    notify:true,
+                    observer: '_contactChanged'
+                },
+                zoneData: {
+                    type:Object,
+                    computed:'getZoneData(contact,geoZone)'
+                },
+                fillColor: {
+                    type:String,
+                    computed:'getFillColor(contact.highlighted)'
+                },
+                opacity: Number
+            },
+            getFillColor:function(highlighted) {
+                if(highlighted) {
+                    return "#FFCC00"
+                }
+                return "#03f";
+            },
+            ready: function() {
+            },
+            getZoneData: function(contact,geoZone) {
+                return {contact:contact,geoZone:geoZone};
+            },
+            _zoneChanged: function(newVal) {
+                if (newVal !== undefined) {
+                    this.northEast = [newVal.Rectangle.TopLeftLat, newVal.Rectangle.TopLeftLon];
+                    this.southWest = [newVal.Rectangle.BotRightLat, newVal.Rectangle.BotRightLon];
+                } else {
+                    this.northEast = [0,0];
+                    this.southWest = [0,0];
+                }
+                this.$.rect.additionalOptions.dataObject = this.zoneData;
+                var that = this;
+            },
+            _contactChanged: function() {
+                this.$.rect.additionalOptions.dataObject = this.zoneData;
+            },
+            detached: function() {
+                this.$.rect.detached();
+            }
+        });
+    </script>
+
+</dom-module>
+

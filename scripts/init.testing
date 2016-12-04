@@ -1,0 +1,76 @@
+#!/bin/bash
+set -e
+
+GOODL_USER=${GOODL_USER:-goodl}
+
+HTTP_PORT=${HTTP_PORT:-4000}
+LOG_FILE=${LOG_FILE:-/var/log/goodl/production.log}
+
+# setting defaults for email & gitlab-issue tests
+
+
+# is a redis container linked?
+if [ -n "${REDIS_PORT_6379_TCP_ADDR}" ]; then
+  REDIS_HOST=${REDIS_HOST:-${REDIS_PORT_6379_TCP_ADDR}}
+  REDIS_PORT=${REDIS_PORT:-${REDIS_PORT_6379_TCP_PORT}}
+fi
+
+# fallback to default redis port
+REDIS_PORT=${REDIS_PORT:-6379}
+
+if [ -z "${REDIS_HOST}" ]; then
+  echo "ERROR: "
+  echo "  Please configure the redis connection."
+  echo "  Refer http://git.io/PMnRSw for more information."
+  echo "  Cannot continue without a redis connection. Aborting..."
+  exit 1
+fi
+
+# permissions for /databases mount
+# as of Pauls SO link: http://stackoverflow.com/questions/23544282/what-is-the-best-way-to-manage-permissions-for-docker-shared-volumes/28596874#28596874
+TARGET_GID=$(stat -c "%g" /databases)
+
+EXISTS=$(cat /etc/group | grep $TARGET_GID | wc -l)
+
+  # Create new group using target GID and add nobody user
+  if [ $EXISTS == "0" ]; then
+    groupadd -g ${GOODL_USER} tempgroup
+    usermod -a -G tempgroup ${GOODL_USER}
+  else
+    # GID exists, find group name and add
+    GROUP=$(getent group ${GOODL_USER} | cut -d: -f1)
+    usermod -a -G $GROUP ${GOODL_USER}
+  fi
+
+echo "Redis Host: "${REDIS_HOST}":"${REDIS_PORT_6379_TCP_PORT}
+echo "Http PORT: "${HTTP_PORT}
+chmod 777 -R /go/src/github.com/OpenDriversLog/goodl
+
+ls -l /databases
+
+
+if [ "$(ls -A ./vendor/github.com)" ]; then
+   echo "seems like GoODL deps are installed. NOT running glide for GoODL"
+else
+   echo "vendor/github.com seems empty... installing deps..."
+   glide install --update-vendored
+fi
+
+mkdir -p $GOPATH/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog
+
+cp -r $GOPATH/src/github.com/OpenDriversLog/goodl-lib $GOPATH/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog
+cp -r $GOPATH/src/github.com/OpenDriversLog/webfw $GOPATH/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog
+cp -r $GOPATH/src/github.com/OpenDriversLog/redistore $GOPATH/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog
+
+if [ "$(ls -A ./vendor/github.com/OpenDriversLog/goodl-lib/vendor/github.com)" ]; then
+   echo "seems like GoODL-lib deps are installed. NOT running glide for goodl-lib"
+else
+    echo "vendor/github.com seems empty in goodl-lib... installing deps..."
+    cd $GOPATH/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog/goodl-lib/ && glide install --update-vendored
+fi
+
+
+echo "run the project... "
+cd /go/src/github.com/OpenDriversLog/goodl
+#sudo -HEu ${GOODL_USER} /usr/src/go/bin/
+go run goodl.go # >&1 | tee -a ${LOG_FILE}

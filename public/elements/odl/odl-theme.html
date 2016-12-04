@@ -1,0 +1,307 @@
+<!-- inspired by paper-styles/default-theme.html &
+https://blog.polymer-project.org/announcements/2015/08/13/1.1-release/ &
+https://github.com/PolymerElements/paper-styles/blob/master/demo/index.html -->
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel=”import” href="../../components/iron-flex-layout/iron-flex-layout-classes.html">
+<dom-module id="odl-styles">
+    <template>
+        <style include="iron-flex">
+            :root {
+
+                --dark-primary-color: #01579b; /* --paper-light-blue-900 */
+
+                --default-primary-color: #0288d1; /* --paper-light-blue-700 */
+
+                --light-primary-color: #81d4fa; /* --paper-light-blue-200 */
+
+                --text-primary-color: #fcfcfc;
+
+                --accent-color: #ffb300; /* paper-amber-600 */
+
+                --accent-color-light: #ffab40;
+
+                --primary-background-color: #fcfcfc;
+
+                --primary-text-color: #131313;
+
+                --odl-secondary-text-color: #fcfcfc;
+
+                --disabled-text-color: #bdbdbd;
+
+                --divider-color: #e0e0e0;
+
+                --secondary-background-color: #01579b; /* --paper-light-blue-900 */
+
+                --tertiary-background-color: #0288d1; /* --paper-light-blue-700 */
+
+                --hover-color: #eaeaea;
+
+                --link-text-color: #ffab40;
+
+                --link-hover-color: #ffd54f;
+            }
+
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            html, body {
+                height: 100%;
+                font-family: 'Roboto', 'Noto', sans-serif;
+                -webkit-font-smoothing: antialiased;
+                text-rendering: optimizeLegibility;
+                font-size: 16px;
+                font-weight: 400;
+                line-height: 24px;
+            }
+            .clickable {
+                cursor:pointer;
+                position:relative;
+            }
+            .center {
+                text-align: center;
+            }
+            .right {
+                float: right;
+            }
+            paper-toolbar {
+                background: var(--secondary-background-color);
+                color: var(--odl-secondary-text-color);
+            }
+            paper-menu paper-item {
+                color: var(--default-primary-color);
+            }
+            paper-item span{ /* Workaround for https://github.com/PolymerElements/paper-menu/issues/31 */
+                pointer-events: none;
+            }
+            paper-menu paper-item:hover {
+                background: var(--hover-color);
+            }
+            .list-item {
+                border-bottom: 1px solid #dedede;
+                background-color: #fafafa;
+                color: var(--primary-text-color);
+            }
+            .list-item :hover {
+                background-color: var(--hover-color);
+            }
+            paper-material a,paper-card a {
+                text-decoration: none;
+                color: var(--link-text-color);
+                margin-right: 20px;
+                -webkit-transition: color .3s ease;
+                -moz-transition: color .3s ease;
+                -o-transition: color .3s ease;
+                -ms-transition: color .3s ease;
+                transition: color .3s ease; }
+            paper-material a:hover,paper-card a:hover {
+                color: var(--link-hover-color); }
+            .link {
+                text-decoration: none;
+                color: var(--link-text-color);
+                margin-right: 20px;
+                -webkit-transition: color .3s ease;
+                -moz-transition: color .3s ease;
+                -o-transition: color .3s ease;
+                -ms-transition: color .3s ease;
+                transition: color .3s ease;
+            }
+            .link:hover {
+                color: var(--link-hover-color); }
+            .odl-primary {
+                background: var(--primary-background-color);
+                color: var(--primary-text-color);
+            }
+            .odl-secondary {
+                background: var(--secondary-background-color);
+                color: var(--odl-secondary-text-color);
+            }
+            .odl-tertiary {
+                background: var(--tertiary-background-color);
+                color: var(--odl-secondary-text-color);
+            }
+            #spinner {
+                display: block;
+                margin: auto;
+                padding-left:20px;
+                padding-top:10px;
+                width:28px;
+                height:28px;
+            }
+            paper-input label {
+                color : var(--disabled-text-color);
+            }
+            paper-icon-button:hover {
+                background: rgba(3,169,244,0.3);
+                border-radius: 50%;
+            }
+            #ink.paper-icon-button {
+                opacity: 0.6;
+            }
+
+
+            paper-icon-button {
+                color: #03a9f4;
+                /* Does not work any more */
+                --paper-icon-button-disabled : {
+                    color:#bdbdbd;
+                }
+            }
+            /* Workaround for issue : https://github.com/PolymerElements/paper-icon-button/issues/74 */
+            paper-icon-button[disabled] {
+                color:#bdbdbd;
+            }
+            paper-button {
+                background: var(--accent-color);
+                color:white;
+            }
+            .warning {
+            }
+            .statusMessage {
+            }
+            .error {
+            }
+            .tabs .tab {
+                background-color:#0277bd;
+            }
+            .tabs .tab a {
+                color:#fff;
+            }
+            .tabs .tab a:hover {
+                color: #fff8e1; }
+            .tabs .indicator {
+                background-color: #ff6f00;
+            }
+            .inline {
+                display:inline;
+            }
+            .bottomRight {
+                position:absolute;
+                bottom:0;
+                right:10px;
+            }
+            footer {
+                background-color: #ffffff;
+                color:#131313;
+                width:100%;
+                /* position:fixed; */
+                bottom:0;
+                left:0;
+                padding:0px;
+                padding-top:20px;
+                margin:0px;
+            }
+            .fill {
+                height: 100%;
+                width: 100%;
+            }
+            table.nopadding,table.nopadding tr,table.nopadding td,table.nopadding th,table.nopadding tbody {
+                padding : 0px;
+                margin : 0px;
+            }
+            .odlprogress {
+                display:none;
+                position: relative;
+                top:-15px;
+                width:100%;
+                z-index: 9001;
+                height:10px;
+                overflow: hidden;
+                vertical-align: middle;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            iron-list {
+                max-height:1000px;
+            }
+            .input-field .prefix.active {
+                color: #0288d1 !important;
+            }
+            footer.page-footer {
+                padding:0px;
+                margin:0px;
+            }
+            .datepicker {
+                padding-top: 10px;
+            }
+            .progress {
+                width:100%;
+                height:20px;
+                background-color: #DDDDDD;
+            }
+            paper-material {
+                display: inline-block;
+                box-sizing: border-box;
+                margin: 2px;
+                padding: 4px;
+                border-radius: 2px;
+            }
+            paper-progress {
+
+            }
+            select.invalid {
+                border-bottom: 2px solid #F44336;
+                box-shadow: 0 1px 0 0 #F44336;
+            }
+            select.valid {
+                border-bottom: 2px solid #4CAF50;
+                box-shadow: 0 1px 0 0 #4CAF50;
+            }
+            .pad1px {
+                padding: 1px;
+            }
+            .pad3px {
+                padding: 3px;
+            }
+            .pad5px {
+                padding: 5px;
+            }
+            .edit_padding {
+                padding: 1em;
+            }
+            .default_modal {
+                /* TODO I really do not like this absolute values! */
+                z-index: 19001;
+                min-width:550px;
+                min-height:350px;
+            }
+            #startDatePage
+            {
+                z-index: 19002;
+            }
+            .paper-dialog {
+                z-index: 1001;
+            }
+            .lhm-tab-animation
+            {
+
+            }
+            .leaflet-top
+            {
+                /* fixes leaflet buttons laying over modals */
+                z-index: 10;
+            }
+            paper-badge {
+                --paper-badge-background: var(--paper-red-300);
+                --paper-badge-margin-left: 20px;
+                --paper-badge-margin-bottom: 0px;
+            }
+            paper-badge.hidden {
+                opacity:0;
+            }
+            paper-badge.visible {
+                opacity:1;
+            }
+            .searchBadge {
+                --paper-badge-background: #0277bd;
+                --paper-badge-margin-left: -20px;
+                --paper-badge-margin-bottom: -10px; /* somehow not working */
+            }
+
+            :host.mobile paper-icon-button{
+                border-radius: 36px;
+                padding: 2px;
+            }
+        </style>
+    </template>
+</dom-module>

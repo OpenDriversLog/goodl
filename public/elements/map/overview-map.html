@@ -1,0 +1,232 @@
+<link rel="import" href="../../components/polymer/polymer.html">
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link href="../../components/iron-icons/iron-icons.html" rel="import">
+<link rel="import" href="../../components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-map.html">
+<link rel="stylesheet" href="../../components/leaflet.draw/dist/leaflet.draw.css" />
+<link rel="stylesheet" href="../../components/leaflet.photon/leaflet.photon.css" />
+<link rel="import" href="contact-map-item.html">
+<link rel="import" href="trip-map-item.html">
+<link rel="import" href="../odl/odl-theme.html">
+<script src="../../components/leaflet.draw/dist/leaflet.draw-src.js"></script>
+
+<dom-module id="overview-map">
+    <template>
+        <style include="odl-styles">
+
+        </style>
+        <style is="custom-style">
+            .leaflet-draw-edit-edit {
+                display:none !important; /* TODO: Find out why this is not working! */
+            }
+        </style>
+        <leaflet-map on-map-ready="mapInit" class="fill" id="innerMap" latitude="50.92062" longitude="13.34081" zoom="13" no-zoom-control="[[isMobile]]" no-attribution-control>
+            <content></content>
+            <leaflet-layer-group fit-map-to-bounds="true" id="contactsLayer">
+                <template is="dom-repeat" items="[[contacts]]" as="contact">
+                    <contact-map-item hide-old-contacts="[[hideOldContacts]]" id$="{{_getContactId(contact.Id)}}" editable-items="{{editableItems}}" contact="{{contact}}"></contact-map-item>
+                </template>
+            </leaflet-layer-group>
+            <leaflet-layer-group fit-map-to-bounds="true" id="tripsLayer">
+                <template is="dom-repeat" items="[[trips]]" as="trip">
+
+                    <trip-map-item  id="{{getId(trip)}}" contacts-by-id="{{contactsById}}" trip="{{trip}}"></trip-map-item>
+                </template>
+            </leaflet-layer-group>
+        </leaflet-map>
+    </template>
+
+    <script>
+        var map;
+        var polyMap;
+        Polymer({
+            is: "overview-map",
+            properties: {
+                trips: {
+                    type: Object,
+                },
+                tracks: {
+                    type: Object,
+                },
+                contacts: {
+                    type: Array,
+                    value: [],
+                    notify:true
+                },
+                contactsById: {
+                    type: Object,
+                    value: {}
+                },
+                editableItems: {
+                    type:Object,
+                    value: undefined
+                },
+                drawControl: {
+                    type:Object,
+                    value: {}
+                },
+                t:{
+                    type:Object,
+                    value:{},
+                    observer:"_tChanged"
+                },
+                hideOldContacts:Boolean,
+                isMobile:Boolean
+
+            },
+            getId: function(trip) {
+                return "tripMapItem"+trip.Id;
+            },
+            _tChanged:function(newVal) {
+                if(newVal) {
+                    L.drawLocal.edit = {
+                        toolbar: {
+                            actions: {
+                                save: {
+                                    title: this.t["saveChanges"],
+                                    text: this.t["save"]
+                                },
+                                cancel: {
+                                    title: this.t["undoAll"],
+                                    text: this.t["cancel"]
+                                }
+                            },
+                            buttons: {
+                                edit: this.t["editGeoZones"],
+                                editDisabled: this.t["noGeoZonesToEdit"],
+                                remove: this.t["deleteGeoZones"], // delete disabled anyways
+                                removeDisabled: this.t["noGeoZonesToDelete"]
+                            }
+                        },
+                        handlers: {
+                            edit: {
+                                tooltip: {
+                                    text: this.t["lhm_Drag"],
+                                    subtext: this.t["cancelForUndo"]
+                                }
+                            },
+                            remove: {
+                                tooltip: {
+                                    text: this.t["clickToRemove"]
+                                }
+                            }
+                        }
+                    };
+                }
+            },
+            create: function() {
+
+            },
+            _getContactId:function(id) {
+                return "cMapItem_"+id
+            },
+            ready: function() {
+                L.Icon.Default.imagePath="./public/components/leaflet/dist/images";
+
+            },
+            mapInit: function() { // add edit controls
+                map = this.$.innerMap.map;
+                polyMap = this.$.innerMap;
+
+                /* Start initialising Geozone & contact position edit */
+                // Initialise the FeatureGroup to store editable layers - but do not assign it yet
+                var _editableItems = new L.FeatureGroup();
+                var that = this;
+
+                // Initialise the draw control and pass it the FeatureGroup of editable layers
+                this.drawControl = new L.Control.Draw({
+                    position: 'topright',
+                    draw: false,
+                    edit: {
+                        featureGroup:  _editableItems,
+                        remove: false
+                    }
+                });
+
+                map.addLayer(_editableItems);
+                that.editableItems = _editableItems;
+                map.addControl(this.drawControl);
+                //not the right place, but elsewhere this gets overwritten by leaflet
+                //and it fixes the overlaying edit buttons bug
+                $('.leaflet-top').css("z-index","10");
+                $('.leaflet-bottom').css("z-index","10");
+
+                map.on('draw:edited', function(e) {
+                    var layers = e.layers;
+                    var updContacts = {};
+                    layers.eachLayer(function(layer) {
+                        var contact = undefined;
+                        if(layer.options.dataObject!==undefined) // rectangle for GeoZone
+                        {
+                            contact = layer.options.dataObject.contact;
+                            var geoZone = layer.options.dataObject.geoZone;
+                        } else {
+                            contact = layer.options.contact;
+                        }
+                        if (updContacts[contact.Id]!==undefined) {
+                            contact = updContacts[contact.Id];
+                        } else {
+                            updContacts[contact.Id] = contact;
+                        }
+                        if(geoZone!==undefined && contact!==undefined) {
+                            var latlngs = layer.getLatLngs();
+                            geoZone.Rectangle.TopLeftLat=latlngs[0].lat;
+                            geoZone.Rectangle.TopLeftLon = latlngs[0].lng;
+                            geoZone.Rectangle.BotRightLat=latlngs[2].lat;
+                            geoZone.Rectangle.BotRightLon = latlngs[2].lng;
+                            geoZone.OuterMinLat = latlngs[0].lat;
+                            geoZone.OuterMinLon =  latlngs[0].lng;
+                            geoZone.OuterMaxLat = latlngs[2].lat;
+                            geoZone.OuterMaxLon =  latlngs[2].lng;
+                            for(var i = 0;i<contact.Address.GeoZones.length;i++) {
+                                if (contact.Address.GeoZones[i].Id==geoZone.Id) {
+                                    contact.Address.GeoZones[i] = geoZone;
+                                }
+                            }
+                        } else if(contact!==undefined) // Marker for contact
+                        {
+                            var latlng = layer.getLatLng();
+                            contact.Address.Latitude = latlng.lat;
+                            contact.Address.Longitude = latlng.lng;
+                        }
+                    });
+                    Object.keys(updContacts).forEach(function(key){
+                        that.fire('update-contact',updContacts[key]);
+                    });
+
+                });
+                map.on('draw:editstop', function(e) {
+                    // Remove editable items (first add to non-editable container, than clear editable items)
+                    var lg = L.layerGroup();
+                    that.editableItems.eachLayer(function(layer) {
+                        layer.addTo(lg);
+                        var contact = undefined;
+                        if(layer.options.dataObject!==undefined) // rectangle for GeoZone
+                        {
+                            contact = layer.options.dataObject.contact;
+                            var geoZone = layer.options.dataObject.geoZone;
+                        } else {
+                            contact = layer.options.contact;
+                        }
+                        that.set('contacts.'+getIdxFromId(contact.Id,that.contacts)+".highlighted",false)
+                    });
+                    that.editableItems.clearLayers();
+                    map.addLayer(lg);
+                });
+
+                /* Finish initialising Geozone & contact position edit */
+
+
+            },
+            moveContact: function(id) {
+                this.$.contactsLayer.querySelector("#cMapItem_"+id).startMove();
+            },
+            endMoveContact:function(id) {
+                this.$.contactsLayer.querySelector("#cMapItem_"+id).endMove();
+
+            }
+        });
+    </script>
+
+</dom-module>

@@ -1,0 +1,215 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="driver-edit.html">
+<link rel="import" href="../behaviors/odl-editbehavior.html">
+<link rel="import" href="../selectors/car-selector.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<dom-module id="device-edit">
+    <template>
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+
+        <!-- Dialogs for checking if sure to delete or sure to leave page with unchanged changes -->
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+        <carbon-route id="deviceEditRoute" data="{{routeParams}}" route="{{route}}" pattern="/:selectedName"></carbon-route>
+
+        <!-- Ajax-Requests for Delete, Create, Update -->
+        <iron-ajax id="ajaxDeviceDeleter"
+                   url="../../../deviceMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+        <iron-ajax id="ajaxDeviceCreator"
+                   url="../../../deviceMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+        <iron-ajax id="ajaxDeviceUpdater"
+                   url="../../../deviceMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation"
+                             exit-animation="fade-out-animation" id="deviceEdit_pages" class="fit edit_tab"
+                             selected="{{routeParams.selectedName}}" attr-for-selected="name">
+
+            <!-- Start page 0 / device edit -->
+            <neon-animatable name="edit" exit-animation="fade-out-animation"  entry-animation="fade-in-animation">
+                <!-- Top title toolbar with back,button, loading spinner, cancel and save -->
+                <paper-toolbar>
+                    <paper-icon-button id="deviceEdit_back" icon="arrow-back" title="zurück zur Geräteliste" on-tap="back">
+                    </paper-icon-button>
+                    <div class="title">Gerät bearbeiten</div>
+                    <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                    <paper-icon-button id="cancelButton" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+                    <paper-icon-button id="saveButton" icon="icons:save" on-tap="saveEdit" title="Speichern" disabled="[[saveDisabled]]"></paper-icon-button>
+                </paper-toolbar>
+
+                <!-- The actual form for editing the element - note that it uses the "internal"-object -->
+                <paper-material id="deviceEdit" class="edit_padding">
+
+                    <form is="iron-form" id="formEditDevice" method="POST">
+                        <div class="vertical layout"><paper-checkbox checked="{{internalDevice.Checked}}">Daten auswerten</paper-checkbox>
+                            <paper-input id="deviceDesc" required label="Beschreibung" type="text" value="{{internalDevice.Description}}"></paper-input>
+                            <color-selector selected-color="{{internalDevice.Color}}" colors="[[colors]]"
+                                            colors-by-id="[[colorsById]]" label="Farbe zuweisen"></color-selector>
+                            <!--color-selector selected-color="{{internalDevice.Color}}" selected-id="{{selectedColorId}}" colors="{{colors}}" colors-by-id="[[colorsById]]"--></color-selector>
+                            <car-selector required label="Fahrzeug zuweisen" on-create-new="newCar" cars="{{cars}}" cars-by-id="{{carsById}}" selected-id="{{internalDevice.CarId}}"></car-selector>
+                            <paper-input id="guid" label="Geräteschlüssel" type="text" value="{{internalDevice.Guid}}"></paper-input>
+
+                        </div>
+                    </form>
+
+                </paper-material>
+            </neon-animatable>
+            <!-- Start page 1 / edit car -->
+
+            <div name="editCar" class="carEditPage flex ">
+                <div class="fit edit_padding">
+                    <car-edit hide-old-contacts="[[hideOldContacts]]" id="carEdit" car="{{selectedCar}}"
+                              drivers="{{drivers}}"
+                              drivers-by-id="{{driversById}}"
+                              on-created="carCreated"
+                              on-canceled="cancelCarEdit"
+                              on-back="cancelCarEdit"
+                    ></car-edit>
+                </div>
+            </div>
+        </neon-animated-pages>
+    </template>
+    <script>
+
+        function getEmptyDevice() {
+            return {
+                "Id": -1,
+                "Color" : {},
+                "Description" : "",
+                "Checked" : 1,
+                "CarId": 0,
+                "Guid":""
+            };
+        }
+        Polymer({
+            is: "device-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+            properties: {
+                device: {
+                    type: Object,
+                    notify: true,
+                    observer:'_dtoChanged'
+                },
+                internalDevice: {
+                    type: Object,
+                    notify:true
+                },
+                cars: {
+                    type: Array,
+                    notify: true
+                },
+                carsById: {
+                    type: Object,
+                    value: {}
+                },
+                drivers: {
+                    type: Array,
+                    notify: true
+                },
+                driversById: {
+                    type: Object,
+                    value: {}
+                },
+                selectedCar: {
+                    type:Object,
+                    notify:true
+                },
+                colors: {
+                    type: Array
+                },
+                colorsById: {
+                    type: Object,
+                    value: {}
+                },
+                selectedName:{
+                    type:String,
+                    value:"",
+                    computed:"_getSame(routeParams.selectedName)"
+                },
+                hideOldContacts: Boolean
+            },
+            _getSame: function(e) {
+                return e;
+            },
+            newCar: function() {
+                this.selectedCar = this.$.carEdit.getNew();
+                this.set("routeParams.selectedName","editCar");
+            },
+            carCreated: function(event) {
+                this.async(function() {
+                    if (event.detail.type == "car") {
+                        if (event.detail.updatedObject) {
+                            this.set("internalDevice.CarId",event.detail.updatedObject.Id);
+                        }
+                        this.async(function () {
+                            this.set("routeParams.selectedName","edit");
+                        });
+                    }
+                });
+
+            },
+            cancelCarEdit: function(event) {
+                if(event.detail.type=="car") {
+                    this.set("routeParams.selectedName","edit");
+                }
+            },
+            getItemDesc: function(device) {
+                return "Gerät " + this.getValString(device.Description);
+            },
+            getNew: function() {
+                return getEmptyDevice();
+            },
+            ready: function() {
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "device";
+                this.upperDtoName = "Device";
+                this.ajaxDeleter = this.$.ajaxDeviceDeleter;
+                this.ajaxCreator = this.$.ajaxDeviceCreator;
+                this.ajaxUpdater = this.$.ajaxDeviceUpdater;
+                this.set("routeParams.selectedName","edit");
+            },
+            polish: function(device) {
+                device.CarId = parseInt(device.CarId);
+                if(device.Guid=="") device.Guid="-";
+                device.Checked = device.Checked>0 || device.Checked===true?1:0;
+            }
+
+        });
+    </script>
+</dom-module>

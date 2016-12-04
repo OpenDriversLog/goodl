@@ -1,0 +1,1456 @@
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/iron-selector/iron-selector.html">
+
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../../components/paper-input/paper-textarea.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-badge/paper-badge.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+
+
+<link rel="import" href="../../components/neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../../components/neon-animation/animations/fade-in-animation.html">
+<link rel="import" href="../../components/neon-animation/animations/ripple-animation.html">
+<link rel="import" href="../../components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../../components/neon-animation/animations/scale-down-animation.html">
+<link rel="import" href="../../components/neon-animation/animations/slide-up-animation.html">
+<link rel="import" href="../../components/neon-animation/animations/slide-down-animation.html">
+<link rel="import" href="../../components/neon-animation/neon-animation-runner-behavior.html">
+
+<link rel="import" href="../behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="../controls/trip-type.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../selectors/contact-selector.html">
+<link rel="import" href="../helpers/address-helper.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<dom-module id="trip-edit">
+    <!--
+    `trip-edit` shows detailed data about a trip.
+    It expects:
+
+    1. `trip` to be json object of an odl-trip
+    1. `trips` to be Array of Trips, used to choose new Start- or End-Trip
+    1. `drivers` to  be an array of odl-drivers, two way binding, so we can create from here
+    1. `contacts` array of odl-contacts, two way binding, so we can create from here
+
+    Example:
+
+    <trip-edit trip="{{selectedTrip}}"
+    trips="{{trips}}"
+    contacts="{{contacts}}"
+    drivers="{{drivers}}"></trip-edit>
+
+    if IsReturnTrip
+    tripContact = startContact
+    else
+    tripContact = endContact
+
+    -->
+
+    <template>
+
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+
+        <style>
+
+            .needs-review{
+                border-color: #ff0000;
+                border-style:solid;
+            }
+            .reviewed{
+                border-color: #00ff00;
+            }
+            :host.mobile .needs-review {
+                padding:0;
+            }
+            :host.mobile .reviewed {
+                padding:0;
+            }
+            .backWayCB {
+                padding-top:12px;
+            }
+            .mobileTitle {
+                --paper-input-container-input: {
+                    font-size: 18px;
+                    height:38px;
+                };
+                font-weight:bold;
+                height:76px;
+                width:95%;
+            }
+
+            .mobileEditTrip{
+                font-size:16px;
+            }
+            .backWayCB_mobile {
+                padding-bottom:10px;
+            }
+
+            .mobileArea {
+                border-style:hidden hidden solid hidden;
+                border-bottom-width: 1px;
+            }
+            .mobileArea paper-radio-group paper-radio-button {
+                padding-left:0;
+                padding-right:5px;
+            }
+            .mobileArea paper-radio-group paper-radio-button.radioBusinessTrip {
+                --paper-radio-button-unchecked-color:#FFECB3;
+                --paper-radio-button-checked-color:#FFC107;
+                padding-right:0;
+            }
+            .mobileArea paper-radio-group paper-radio-button.radioPrivate {
+                --paper-radio-button-unchecked-color:#C8E6C9;
+                --paper-radio-button-checked-color:#81C784;
+            }
+            .mobileArea paper-radio-group paper-radio-button.radioWorkway {
+                --paper-radio-button-unchecked-color:#B3E5FC;
+                --paper-radio-button-checked-color:#4FC3F7;
+            }
+
+            :host.mobile #tripEdit {
+                border-style: solid;
+                border-width:3px;
+            }
+        </style>
+
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+
+        <iron-ajax id="ajaxTripUpdater"
+                   url="../../../trips"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update", "trip": "" }'
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="tripEdit_pages" class="fit"
+                             selected="{{realSelectedEditPage}}"
+                             attr-for-selected="name"
+        >
+
+            <!-- Start page 0 / trip-edit -->
+            <div class="vertical layout fit" name="edit">
+
+                <paper-toolbar>
+                    <div class="horizontal layout">
+                        <paper-icon-button id="tripEdit_back" icon="arrow-back" title="zurück zur Fahrtenliste" on-tap="cancelEdit">
+                        </paper-icon-button>
+                        <div class="title">Fahrt bearbeiten</div>
+                        <paper-spinner id="spin" active="{{anyLoading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="cancelButton" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+                        <paper-icon-button id="saveButton" icon="icons:save" on-tap="saveEdit" title="Speichern" disabled="{{_calcSaveDisabled(internalTrip.editable,saveDisabled)}}"></paper-icon-button>
+                    </div>
+                </paper-toolbar>
+
+                <paper-material id="tripEdit" class$="edit_padding [[_getReviewClass(internalTrip.Reviewed)]]">
+                    <div style="overflow:auto;">
+                        <div id="trip" class="vertical layout flex edit_padding" hidden$="{{anyLoading}}">
+                            <template is="dom-if" if="[[!isMobile]]">
+                                <div class="vertical layout">
+                                    <trip-type id="trip_type" type="[[internalTrip.Type]]" label></trip-type>
+                                    <div> Fahrt-Nr.: [[internalTrip.Id]] </div>
+                                    <div><b>[[internalTrip.Title]]</b></div>
+                                    <div>
+                                        <iron-icon icon="hardware:smartphone"
+                                                   class="phoneIcon"
+                                                   style$="color:[[internalTrip.Device.Color.Color2]];"></iron-icon>
+                                        [[internalTrip.Device.Description]]
+                                    </div>
+                                    <div>Strecke : {{internalTrip.Distance}} km</div><br/>
+                                </div>
+
+                                <div class="vertical layout">
+                                    <driver-selector drivers-by-id="{{driversById}}" drivers="{{drivers}}"
+                                                     selected-id="{{internalTrip.DriverId}}" label="Fahrer"
+                                                     on-create-new="newDriver" disabled="[[_negate(internalTrip.editable)]]"></driver-selector>
+                                    <div class="horizontal layout end-justified">
+                                        <contact-selector id="tripStartAddrChooser"
+                                                          selected-id="{{internalTrip.StartContactId}}"
+                                                          on-selected-item-changed="_startContactSelected"
+                                                          on-create-new="_createNewContactStart"
+                                                          new-contact-address="[[internalTrip.StartAddress]]"
+                                                          contacts-by-id="[[contactsById]]"
+                                                          label="Start-Kontakt"
+                                                          contacts="[[trip.startContacts]]"
+                                                          disabled="[[_negate(internalTrip.editable)]]"
+                                                          hide-old-contacts="[[hideOldContacts]]"
+                                        ></contact-selector>
+                                        <div class="tripStartEndTime vertical layout self-center flex right-align">
+                                            <span>[[formatTime(internalTrip.StartTime)]]</span>
+                                            <span>[[formatAddress(internalTrip.StartAddress)]]</span>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="horizontal layout end-justified">
+                                        <contact-selector id="tripEndAddrChooser"
+                                                          hide-old-contacts="[[hideOldContacts]]"
+                                                          selected-id="{{internalTrip.EndContactId}}"
+                                                          on-selected-item-changed="_endContactSelected"
+                                                          on-create-new="_createNewContactEnd"
+                                                          new-contact-address="[[internalTrip.EndAddress]]"
+                                                          contacts-by-id="[[contactsById]]"
+                                                          contacts="[[trip.endContacts]]"
+                                                          label="Ziel-Kontakt"
+                                                          disabled="[[_negate(internalTrip.editable)]]"
+                                        ></contact-selector>
+                                        <div class="tripStartEndTime vertical layout self-center flex">
+                                            <span>[[formatTime(internalTrip.EndTime)]]</span>
+                                            <span>[[formatAddress(internalTrip.EndAddress)]]</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <div id="trip_business_detail_container">
+
+                                    <div class="horizontal layout">
+                                        <paper-radio-group id="trip_edit_triptype" selected="{{internalTrip.Type}}" disabled="{{_negate(internalTrip.editable)}}">
+                                            <paper-radio-button name="1" disabled="{{_negate(internalTrip.editable)}}">Privat</paper-radio-button>
+                                            <paper-radio-button id="radioWorkWay" name="2" disabled="{{_negate(internalTrip.editable)}}">Arbeitsweg</paper-radio-button>
+                                            <paper-radio-button id="radioBusinessTrip" name="3" disabled="{{_negate(internalTrip.editable)}}">Dienstlich</paper-radio-button>
+                                        </paper-radio-group>
+                                        <paper-checkbox class="backWayCB" id="returntrip" checked="{{internalTrip.IsReturnTrip}}" disabled="[[_negate(internalTrip.editable)]]">Rückweg</paper-checkbox>
+                                    </div>
+
+                                    <div>
+                                        <paper-textarea
+                                                rows="1" max-rows="1" maxlength="1337"
+                                                value="{{internalTrip.Title}}" label="[[t.tripReason]]"
+                                                disabled="[[_negate(internalTrip.editable)]]"></paper-textarea>
+                                    </div>
+                                    <div class="tripDesc">
+                                        <paper-textarea id="TripReason" name="tripReason" label='Erweiterter Fahrtengrund'
+                                                        type="text" value="{{internalTrip.Description}}"
+                                                        class="active" rows="2" max-rows="5" disabled="[[_negate(internalTrip.editable)]]"></paper-textarea>
+
+                                    </div>
+                                </div>
+                            </template>
+
+                            <template is="dom-if" if="[[isMobile]]">
+                                <div class="fill mobileEditTrip edit_padding">
+                                    <paper-textarea class="mobileTitle"
+                                                    rows="1" max-rows="1" maxlength="1337"
+                                                    value="{{internalTrip.Title}}" label="[[t.tripReason]]"
+                                                    disabled="[[_negate(internalTrip.editable)]]"></paper-textarea>
+                                </div>
+                                <div class$="basicTripData mobileArea vertical layout [[_getReviewClass(internalTrip.Reviewed)]]">
+                                    <div class="vertical layout edit_padding">
+                                        <div class="horizontal layout">
+                                            <paper-radio-group id="trip_edit_triptype" selected="{{internalTrip.Type}}" disabled="{{_negate(internalTrip.editable)}}">
+                                                <paper-radio-button class="flex center radioPrivate" name="1" disabled="{{_negate(internalTrip.editable)}}">Privat</paper-radio-button>
+                                                <paper-radio-button class="flex center radioWorkway" id="radioWorkWay" name="2" disabled="{{_negate(internalTrip.editable)}}">Arbeit</paper-radio-button>
+                                                <paper-radio-button class="flex center radioBusinessTrip" id="radioBusinessTrip" name="3" disabled="{{_negate(internalTrip.editable)}}">Dienstlich</paper-radio-button>
+                                            </paper-radio-group>
+                                        </div>
+                                        <div class="backWayCB_mobile">
+                                            <paper-checkbox id="returntrip" checked="{{internalTrip.IsReturnTrip}}" disabled="[[_negate(internalTrip.editable)]]">Rückweg</paper-checkbox>
+                                        </div>
+                                    </div>
+                                    <div class="edit_padding"> Fahrt-Nr.: [[internalTrip.Id]] </div>
+                                </div>
+                                <div class$="additionalTripData mobileArea vertical layout [[_getReviewClass(internalTrip.Reviewed)]]">
+                                    <div class="vertical layout edit_padding">
+                                        <driver-selector drivers-by-id="{{driversById}}" drivers="{{drivers}}"
+                                                         selected-id="{{internalTrip.DriverId}}" label="Fahrer"
+                                                         on-create-new="newDriver" disabled="[[_negate(internalTrip.editable)]]"></driver-selector>
+                                        <div class="horizontal layout end-justified">
+                                            <contact-selector id="tripStartAddrChooser"
+                                                              selected-id="{{internalTrip.StartContactId}}"
+                                                              on-selected-item-changed="_startContactSelected"
+                                                              on-create-new="_createNewContactStart"
+                                                              new-contact-address="[[internalTrip.StartAddress]]"
+                                                              contacts-by-id="[[contactsById]]"
+                                                              label="Start-Kontakt"
+                                                              contacts="[[trip.startContacts]]"
+                                                              disabled="[[_negate(internalTrip.editable)]]"
+                                                              hide-old-contacts="[[hideOldContacts]]"
+                                            ></contact-selector>
+                                            <div class="tripStartEndTime vertical layout self-center flex right-align">
+                                                <span>[[formatTime(internalTrip.StartTime)]]</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="horizontal layout end-justified">
+                                            <contact-selector id="tripEndAddrChooser"
+                                                              hide-old-contacts="[[hideOldContacts]]"
+                                                              selected-id="{{internalTrip.EndContactId}}"
+                                                              on-selected-item-changed="_endContactSelected"
+                                                              on-create-new="_createNewContactEnd"
+                                                              new-contact-address="[[internalTrip.EndAddress]]"
+                                                              contacts-by-id="[[contactsById]]"
+                                                              contacts="[[trip.endContacts]]"
+                                                              label="Ziel-Kontakt"
+                                                              disabled="[[_negate(internalTrip.editable)]]"
+                                            ></contact-selector>
+                                            <div class="tripStartEndTime vertical layout self-center flex">
+                                                <span>[[formatTime(internalTrip.EndTime)]]</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div class="vertical layout edit_padding">
+                                <br/>Haltepunkte:<br/>
+                                <template is="dom-repeat" id="tracks" class="flex"
+                                          items="[[tracks]]" as="track">
+                                    <paper-item class$="[[_computedClass(selected)]]">
+                                        <paper-item-body on-mouseenter='_onHoveredTrack' on-mouseleave='_onUnHoveredTrack'>
+                                            <div class="horizontal layout"><span class="flex">[[formatTime(track.EndTime)]]</span>
+                                                <div>
+                                                    <paper-icon-button  style$="{{_getCutStyle(index)}}"
+                                                                        index="{{index}}" icon="icons:content-cut"
+                                                                        on-tap="_cutTracks" class="clickable"
+                                                                        style="position: relative;" disabled="[[_negate(internalTrip.editable)]]">
+                                                    </paper-icon-button>
+                                                    <paper-tooltip position="left">
+                                                        [[t.cutTrip]]
+                                                    </paper-tooltip>
+                                                </div>
+                                            </div>
+                                            <div secondary>[[formatAddress(track.EndKeyPointInfo)]]</div>
+                                        </paper-item-body>
+                                    </paper-item>
+                                </template>
+                            </div>
+                            <paper-card on-tap="_toggleCollapse">
+                                <div class="card-actions">
+                                    <div class="fill horizontal layout"><div id="hist">Änderungsverlauf </div> <paper-badge for="hist" label="[[_getCount(internalTrip.History)]]"></paper-badge></div>
+                                </div>
+                                <iron-collapse id="collapse">
+                                    <div class="card-content">
+                                        <template is="dom-repeat" items="[[internalTrip.History]]" as="h">
+                                            [[formatTime(h.ChangeDate)]] :
+                                            <template is="dom-repeat" items="[[_getChangeArray(h.Changes)]]" as="c">
+                                                [[c.Field]] : [[c.OldVal]] -> [[c.NewVal]] <br/>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </iron-collapse>
+                            </paper-card>
+                            <!--paper-card class="white">
+                                <div class="tripChanges">Änderungen: letzteÄnderung <span class="badge teal-text text-lighten-2">0</span>
+                                    <paper-icon-button icon="icons:list" on-tap="showTripHistory" class="raised"></paper-icon-button>
+                                    <!-- TODO: add list of changes here -->
+                            <!-- <paper-icon-button icon="editor:vertical-align-bottom" class="orange-text"
+                            title="Mit Folgefahrt vereinen"
+                            on-tap="_showNext"></paper-icon-button>
+                            <paper-icon-button icon="icons:done-all" class="green-text"
+                            title="Bestätigen"
+                            on-tap="updateRemote"></paper-icon-button> -->
+                            <!--/div>
+
+                        </paper-card-->
+                        </div>
+                    </div>
+                </paper-material>
+            </div>
+
+            <!-- Start page 1 / edit contact -->
+            <neon-animatable name="editContact">
+                <div class="contactEditPage fit">
+                    <contact-edit hide-old-contacts="[[hideOldContacts]]" id="contactEdit" contact="{{selectedContact}}"
+                                  on-back="_showTrip"
+                                  on-created="_onContactCreated"
+                                  on-canceled="_showTrip"></contact-edit>
+                </div>
+            </neon-animatable>
+
+            <!-- Start page 2 / edit driver -->
+            <neon-animatable name="editDriver">
+                <div class="driverEditPage fit">
+                    <driver-edit hide-old-contacts="[[hideOldContacts]]" id="driverEdit" driver="{{selectedDriver}}"
+                                 on-back="_showTrip"
+                                 on-created="_onDriverCreated"
+                                 on-canceled="_showTrip"></driver-edit>
+                </div>
+            </neon-animatable>
+
+        </neon-animated-pages>
+
+    </template>
+
+    <script>
+
+        Polymer({
+                    is: "trip-edit",
+
+                    behaviors: [
+                        OdlBehaviors.OdlEditBehavior,
+                        Polymer.NeonAnimationRunnerBehavior,
+                        Polymer.NeonAnimatableBehavior
+                    ],
+
+                    properties: {
+                        t: { type:Object,value:{}},
+                        trip: {
+                            type: Object, value: {}, notify: true, observer: '_dtoChanged'
+                        },
+                        internalTrip: {
+                            type: Object, value: {}, notify: true, observer: '_tripChanged'
+                        },
+                        isStart: {
+                            type: Boolean, value: false, observer: '_tripChanged'
+                        },
+                        isEnd: {
+                            type: Boolean, value: false, observer: '_tripChanged'
+                        },
+                        trips: {
+                            type: Array, value: []
+                        },
+                        tracks: {
+                            type:Array,
+                            computed:"_getTrackDetails(trip.TrackDetails)"
+                        },
+                        previousTrips: {
+                            type: Array, value: [], notify: true
+                        },
+                        followingTrips: {
+                            type: Array, value: [], notify: true
+                        },
+                        contacts: {
+                            type: Array, value: [], notify: true, observer: '_contactsChanged'
+                        },
+                        contactsById: {
+                            type: Object, value: undefined, notify: true
+                        },
+                        drivers: {
+                            type:Array,
+                            value: [],
+                            notify:true
+                        },driversById: {
+                            type: Object,
+                            value: {}
+                        },
+                        tripContacts: {
+                            type: Array, value: [], notify: true
+                        },
+                        selectedEditPage: {
+                            type: String, value: "edit", notify:true
+                        },
+                        realSelectedEditPage:{type:String,computed:"getRealSelectedEditPage(selectedEditPage)"},
+                        selectedForStart:{
+                            type:Number,
+                            value:null
+                        },
+                        selectedContact: {
+                            type: Object, value: {}, notify: true
+                        },
+                        selectedDriver: {
+                            type: Object, value: {}, notify: true
+                        },
+                        selectedLoading: Boolean,
+                        anyLoading: {
+                            type:Boolean,
+                            computed:"_anyLoading(selectedLoading,loading)"
+                        },
+                        hoveredTrack:{
+                            type:Object,
+                            observer:"_hoveredTrackChanged"
+                        },
+                        hideOldContacts: Boolean,
+                        animationConfig: {
+                            value: function() {
+                                return {
+                                    'showBusinessContainer':[
+                                        {
+                                            name: 'scale-up-animation',
+                                            axis: 'y',
+                                            node: this.$.trip_business_detail_container
+                                        },
+                                    ],
+
+                                    'hideBusinessContainer': {
+                                        name: 'scale-down-animation',
+                                        axis: 'y',
+                                        node: this.$.trip_business_detail_container
+                                    }
+
+                                }
+                            }
+                        },
+                        lastHighlightItem:Object
+
+                    },
+                    listeners: {
+                        'neon-animation-finish': '_onAnimationFinish'
+                    },
+                    _getCount: function(collection) {
+                        if(collection)
+                            return collection.length;
+                        return 0;
+                    },
+                    getRealSelectedEditPage: function(selectedEditPage) {
+                        if(selectedEditPage)   return selectedEditPage;
+                        return "edit";
+                    },
+                    _getCutStyle: function(index) {
+                        if(index>0) {
+                            return "";
+                        }  else {
+                            return "display:none";
+                        }
+                    },
+                    _onHoveredTrack: function(el) {
+                        var t = el.model.track;
+                        if(t) {
+                            this.hoveredTrack=t;
+                        }
+                    },
+                    _toggleCollapse: function(e) {
+                        if (!e.target.classList.contains('card-content')) {
+                            this.$.collapse.toggle();
+                        }
+                    },
+                    _onUnHoveredTrack: function(el) {
+                        var t = el.model.track;
+                        this.async(function(){
+                            if(this.hoveredTrack==t) {
+                                this.hoveredTrack = null;
+                            }
+                        },50);
+
+                    },
+
+                    _hoveredTrackChanged: function(t) {
+                        if (this.lastHighlightItem) {
+                            map.removeLayer(this.lastHighlightItem)
+                        }
+                        if(t && t.EndKeyPointInfo) {
+                            this.lastHighlightItem = L.marker([t.EndKeyPointInfo.Lat,t.EndKeyPointInfo.Lng]);
+                            this.lastHighlightItem.addTo(map);
+                        }
+
+                    },
+                    _cutTracks:function(item) {
+                        if (this.lastHighlightItem) {
+                            map.removeLayer(this.lastHighlightItem)
+                        }
+                        if(item.model) {
+                            if(item.model.index==0) {
+                                return;
+                            }
+                            var idx = item.model.index;
+                            var tIds = "";
+                            for (var i = idx;i<this.tracks.length;i++) {
+                                var t = this.tracks[i];
+                                if(i!==idx) {
+                                    tIds +=","
+                                }
+                                tIds += t.id;
+                            }
+                            if (tIds.length>0) {
+                                this.$.ajaxTripUpdater.body={action:"create",trackIds:tIds};
+                                this.$.ajaxTripUpdater.generateRequest();
+                            }
+                        }
+                    },
+                    observers: [
+                        '_tripTypeChanged(internalTrip.Type)',
+                        '_isReturnTripChanged(internalTrip.IsReturnTrip)',
+                        '_contactsChanged(contacts.splices)'
+                    ],
+
+                    /* some private variables */
+                    _contactCreatedIdStart: true,
+                    _computeOnlyPrivateAvailable : function(trip) {
+                        if(trip.IsReturnTrip && trip.StartContactId == undefined) {
+                            return true;
+                        }  else if (trip.EndContactId == undefined) {
+                            return true;
+                        }
+                        return false;
+                    },
+                    _calcSaveDisabled: function(tripEditable,saveDisabled) {
+                        return !tripEditable || saveDisabled;
+                    },
+                    _getTrackDetails:function(details) {
+                        if(details!==undefined && details.length>0) {
+                            return details;
+                        }
+                        return [];
+                    },
+                    _anyLoading: function(selectedLoading,loading) {
+                        return selectedLoading || loading;
+                    },
+                    ready: function() {
+                        /* ODLEditBehavior fields - order is important! */
+                        this.lowerDtoName = "trip";
+                        this.upperDtoName = "Trip";
+                        this.ajaxUpdater = this.$.ajaxTripUpdater;
+                        this.selectedEditPage="edit";
+                    },
+                    _getChangeArray: function(cs) {
+                        var a = [];
+                        var that = this;
+                        $.each(cs, function(k,v) {
+
+                            if(k=="DriverId") {
+                                if(that.driversById) {
+                                    if(v.OldVal==0) v.OldVal = "-";
+                                    else {
+                                        var c = that.driversById[v.OldVal];
+                                        if (c!==undefined) {
+                                            c = c.Name;
+                                        } else {
+                                            c = "Gelöschter Fahrer";
+                                        }
+                                        v.OldVal = c;
+                                    }
+                                    if(v.NewVal==0) v.NewVal = "-";
+                                    else {
+                                        var c = that.driversById[v.NewVal];
+                                        if (c !== undefined) {
+                                            c = c.Name;
+                                        } else {
+                                            c = "Gelöschter Fahrer";
+                                        }
+                                        v.NewVal = c;
+                                    }
+                                }
+                            } else if(k.indexOf("ContactId")!==-1) {
+                                if(that.contactsById) {
+                                    if(v.OldVal==0) v.OldVal = "-";
+                                    else {
+                                        var c = that.contactsById[v.OldVal];
+                                        if (c!==undefined) {
+                                            c = c.Title;
+                                        } else {
+                                            c = "Gelöschter Kontakt";
+                                        }
+                                        v.OldVal = c;
+                                    }
+                                    if(v.NewVal==0) v.NewVal = "-";
+                                    else {
+                                        var c = that.contactsById[v.NewVal];
+                                        if (c !== undefined) {
+                                            c = c.Title;
+                                        } else {
+                                            c = "Gelöschter Kontakt";
+                                        }
+                                        v.NewVal = c;
+                                    }
+                                }
+                            }
+                            if(that.t) {
+                                k = that.t["Change_"+k];
+                            }
+                            v.Field = k;
+                            a.push(v);
+                        });
+                        return a;
+                    },
+                    /* odl-editbehavior */
+                    getItemDesc: function(trip) {
+                        if (trip !== undefined) {
+                            /* if (trip.Title !== "") {
+                             return trip.Title;
+                             } else */
+                            var s = trip.Title;
+                            if (s!="") s+=" - ";
+
+                            var dateFormat = "E dd.MM. HH:mm";
+                            s += $.format.date(new Date(trip.StartTime), dateFormat);
+                            if(trip.Title != undefined) {
+                                s += " " + trip.Title + " - ";
+                            }
+                            if(trip.StartContact != undefined) {
+                                s += " " + trip.StartContact.Title;
+                            }
+                            if(trip.StartAddress !== undefined)
+                                s += " " + getAddressHTML(trip.StartAddress,true,true);
+                            s += " > " + $.format.date(new Date(trip.EndTime), dateFormat);
+                            if(trip.EndContact != undefined) {
+                                s += " " + trip.EndContact.Title;
+                            }
+                            if(trip.EndAddress !== undefined)
+                                s += " " + getAddressHTML(trip.EndAddress,true,true);
+
+                            return s;
+                        } else {
+                            return "Unbekannt";
+                        }
+                    },
+                    mergeTrips: function(tripsToMerge) {
+                        if(this.checkIfMergeAllowed(tripsToMerge)) {
+                            tripsToMerge.sort(function(a,b){
+                                return a.StartTime < b.StartTime ? -1 : (a.StartTime> b.StartTime?1:0)
+                            });
+                            return this._selectNewEnd(tripsToMerge[tripsToMerge.length-1], tripsToMerge[0]);
+                        } else {
+                            console.warn("Tried to merge trips that are not allowed to be merged", trips)
+                        }
+                    },
+                    getNew: function() {
+                        return {"Id":-1,
+                            "TrackIds":[],
+                            "Type":0,
+                            "Title":"-",
+                            "Description":"-",
+                            "DriverId":-1,
+                            "Driver":{},
+                            "ContactId":-2,
+                            "StartTime":0,"EndTime":1,
+                            "StartAddress":{
+                                "Id":-1,"Latitude":0,"Longitude":0,
+                                "Street":"-","Postal":"-","City":"-","Additional1":"","Additional2":"","HouseNumber":"","Title":"","Fuel":"","GeoZones":null},
+                            "EndAddress":{
+                                "Id":-1,"Latitude":0,"Longitude":0,
+                                "Street":"-","Postal":"-","City":"-","Additional1":"","Additional2":"","HouseNumber":"","Title":"","Fuel":"","GeoZones":null},
+                            "StartContactId":-1,"ProposedStartContactIds":"",
+                            "EndContactId":-1,"ProposedEndContactIds":"",
+                            "StartKeyPointId":-1,"EndKeyPointId":-1,
+                            "Distance":0,"IsReturnTrip":0,
+                            "Reviewed":0};
+                    },
+                    _showTrip: function() {
+                        this.async(function(){
+                            this.set('selectedEditPage', "edit");
+                        });
+                    },
+                    _getReviewClass: function(reviewed) {
+                        if(reviewed===0) return 'needs-review';
+                        return 'reviewed';
+                    },
+                    _tripChanged: function(event) {
+                        var that = this;
+                        if (this.internalTrip != undefined) {
+                            /*if (this.internalTrip.Reviewed === 1 ) {
+                             this.toggleClass('needs-review', false, this.$.trip);
+                             this.toggleClass('reviewed', true, this.$.trip);
+                             } else {
+                             this.toggleClass('needs-review', true, this.$.trip);
+                             this.toggleClass('reviewed', false, this.$.trip);
+                             };*/
+
+                            this.updateControls();
+                            this.async(function() {
+
+                                this._updateStartEndContacts(this.internalTrip);
+                                if(!this.internalTrip.Reviewed && this.internalTrip.Type<=1) {
+                                    this.internalTrip = this.calcTripType(this.internalTrip);
+                                }
+                                this.internalTrip.Title = this.calcTripTitle(this.internalTrip);
+
+                            });
+                        }
+                    },
+                    updateControls: function() {
+                        if (this._computeOnlyPrivateAvailable(this.internalTrip)) {
+                            //this.$.radioBusinessTrip.setAttribute("disabled",true);
+                            //this.$.radioWorkWay.setAttribute("disabled",true);
+                        } else {
+                            //this.$.radioBusinessTrip.removeAttribute("disabled");
+                            //this.$.radioWorkWay.removeAttribute("disabled");
+                        }
+                    },
+                    _findPreviousTrips: function(trip) {
+                        var previousTrips = [];
+                        if(trip===undefined) trip = this.trip;
+                        var newPrevTrips = [];
+
+                        if (trip === undefined || trip === null) return;
+                        var prevTrip = this.__findTripByEndKeyPointId(trip.StartKeyPointId);
+                        /* console.log('found first previous trip', prevTrip); */
+
+                        if (prevTrip !== null && prevTrip !== undefined) {
+                            do {
+                                if (prevTrip.EndKeyPoint.EndTime-prevTrip.EndKeyPoint.StartTime > 7200000) {
+                                    // no stops >2 hours.
+                                    break;
+                                }
+                                newPrevTrips.unshift(prevTrip); // not push, because we want earliest trip on top
+                                prevTrip = this.__findTripByEndKeyPointId(newPrevTrips[0].StartKeyPointId);
+                            } while (prevTrip != undefined && newPrevTrips[0] != undefined);
+                        }
+
+                        return newPrevTrips;
+                        /* console.log('found', this.previousTrips.length, 'previous trips', this.previousTrips); */
+                    },
+                    _findFollowingTrips: function(trip) {
+                        if(trip===undefined) trip = this.trip;
+                        var newFollTrips = [];
+                        if (trip === undefined || trip === null) return;
+                        var follTrip = this._findTripByStartKeyPointId(trip.EndKeyPointId);
+                        /* console.log('found first following trip', follTrip); */
+                        var prevTrip = trip;
+                        if (follTrip != null && follTrip != undefined) {
+                            do {
+                                if (follTrip.StartTime-prevTrip.EndTime > 7200000) {
+                                    // no stops >2 hours.
+                                    break;
+                                }
+                                newFollTrips.push(follTrip);
+                                prevTrip = follTrip;
+                                follTrip = this._findTripByStartKeyPointId(newFollTrips[newFollTrips.length-1].EndKeyPointId);
+                            } while (follTrip != undefined && newFollTrips[0] != undefined);
+
+                        }
+
+                        return newFollTrips;
+                        /* console.log('found', this.followingTrips.length, 'following trips', this.followingTrips); */
+                    },
+
+                    _updateStartEndContacts: function(trip) {
+                        var that = this;
+                        if (this.contacts === undefined || this.contacts.length <= 0 || trip === undefined) {
+                            return trip;
+                        } else {
+                            // this part checks the `ProposedStartContactIds` and `ProposedEndContactIds` of the selected trip
+                            var scs = [];
+                            var ecs = [];
+                            var scIds = [];
+                            var ecIds = [];
+                            if (trip.ProposedStartContactIds !== undefined && trip.ProposedStartContactIds.length > 0) {
+                                var propStartCIds = trip.ProposedStartContactIds.split(',');
+                                $.each(propStartCIds, function (i, v) {
+                                    var c = that.getIdxFromId(v, that.contacts);
+                                    if (c >= 0 && scIds.indexOf(that.contacts[c].Id)==-1) {
+                                        scs.push(that.contacts[c]);
+                                        scIds.push(that.contacts[c].Id);
+                                    }
+                                });
+                            }
+                            var mcs = this._findContactsInSameStreet(trip.StartAddress,scIds);
+                            if (mcs&&mcs.length>0)
+                                scs = scs.concat(mcs);
+
+                            $.each(this.contacts,function(i,c) {
+                                if(scIds.indexOf(c.Id)==-1) {
+                                    scs.push(c);
+                                    scIds.push(c.Id);
+                                }
+                            });
+
+                            var that = this;
+                            trip.startContacts = scs;
+                            /*this.set('startContacts', undefined);
+                             this.async(function(){
+                             this.set('trip.startContacts', scs);
+                             });*/
+                            if (trip.ProposedEndContactIds !== undefined && trip.ProposedEndContactIds.length > 0) {
+                                var propEndCIds = trip.ProposedEndContactIds.split(',');
+                                $.each(propEndCIds, function (i, v) {
+                                    var c = that.getIdxFromId(v, that.contacts);
+                                    if (c >= 0  && ecIds.indexOf(v.Id)==-1) {
+                                        ecs.push(that.contacts[c]);
+                                        ecIds.push(that.contacts[c].Id);
+                                    }
+                                });
+
+                            }
+
+                            mcs = this._findContactsInSameStreet(trip.EndAddress,ecIds);
+                            if (mcs&&mcs.length>0)
+                                ecs = ecs.concat();
+                            $.each(this.contacts,function(i,c) {
+                                if(ecIds.indexOf(c.Id)==-1) {
+                                    ecs.push(c);
+                                    ecIds.push(c.Id);
+                                }
+                            });
+                            trip.endContacts = ecs;
+                            /* this.set('trip.endContacts', undefined);
+                             this.async(function() {
+                             this.set('trip.endContacts', ecs);
+                             });*/
+                        }
+                        return trip;
+                    },
+                    _findTripByStartKeyPointId: function(skpId) {
+                        var trip = {};
+                        var idx = -1;
+
+                        if (this.trips != undefined) {
+                            for (var i = 0; i < this.trips.length; i++) {
+                                if(this.trips[i].StartKeyPointId == skpId) {
+                                    idx = i;
+                                }
+                            }
+                            return  this.trips[idx];
+                        }
+                        return undefined;
+                    },
+
+                    __findTripByEndKeyPointId: function(ekpId) {
+                        var trip = {};
+                        var idx = -1;
+
+                        if (this.trips != undefined) {
+                            for (var i = 0; i < this.trips.length; i++) {
+                                if(this.trips[i].EndKeyPointId == ekpId) {
+                                    idx = i;
+                                }
+                            }
+                            return  this.trips[idx];
+                        }
+                        return undefined;
+                    },
+
+                    _findContactsInSameStreet: function(address,cIdsToIgnore) {
+                        var matchingContacts = [];
+                        if(address===undefined) return;
+                        for (var i = 0; i < this.contacts.length; i++) {
+                            if (this.contacts[i].Address.City == address.City &&
+                                    this.contacts[i].Address.Street == address.Street) {
+                                if(cIdsToIgnore.indexOf(this.contacts[i].Id)===-1) {
+                                    matchingContacts.push(this.contacts[i]);
+                                    cIdsToIgnore.push(this.contacts[i]);
+                                }
+                            }
+                        }
+
+                        return matchingContacts;
+                    },
+                    _computedClass: function(isSelected) {
+                        var classes = 'list-item previoustripitem';
+                        if (isSelected) {
+                            classes += ' selected';
+                        }
+                        return classes;
+                    },
+                    checkIfMergeAllowed: function(tripsToMerge) {
+                        tripsToMerge.sort(function(a,b){
+                            return a.StartTime < b.StartTime ? -1 : (a.StartTime> b.StartTime?1:0)
+                        });
+                        var foundTwo = false;
+                        for(var i = 0;i<tripsToMerge.length;i++) {
+                            var ct = tripsToMerge[i];
+                            if(ct==undefined) return false;
+                            if (!ct.editable) {
+                                return false;
+                            }
+                            if(tripsToMerge.length>i+1) {
+                                var nt = tripsToMerge[i+1];
+                                if(nt==undefined) return false;
+                                if(nt.Id==ct.Id) continue;
+                                if(nt.StartKeyPointId==undefined || nt.StartKeyPointId!=ct.EndKeyPointId) {
+                                    return false;
+                                }
+                                if (nt.StartTime-ct.EndTime > 7200000) {
+                                    // no stops >2 hours allowed.
+                                    return false;
+                                }
+                                foundTwo = true;
+                            }
+                        }
+                        return foundTwo;
+                    },
+                    _selectNewStart: function(newStart,trip) {
+                        if(trip === undefined) trip = this.internalTrip;
+                        if(newStart.Id==undefined && (newStart.model!==undefined || newStart.detail!==undefined)) {
+                            // we got called by a tap on a new startTrip
+                            newStart = event.detail.item.trip;
+                        }
+                        console.log(this.newStart,'new start for trip selected for ', trip);
+                        if (newStart === null) return;
+
+                        var that = this;
+                        var tripsToMerge = [];
+                        var previousTrips = this._findPreviousTrips(trip);
+                        var startIdx = this.getIdxFromId(newStart.Id, previousTrips);
+                        var newTrip = $.extend(true, {}, trip);
+
+                        if (startIdx > -1) {
+                            tripsToMerge = previousTrips.slice(startIdx);
+
+                            tripsToMerge.push(trip);
+                            console.log('those are trips to merge', tripsToMerge);
+
+                            /* all should fit together via keypointIds, because how we added them
+                             with _findPreviousTrips() */
+                            newTrip.StartTime = tripsToMerge[0].StartTime;
+                            newTrip.StartAddress = tripsToMerge[0].StartAddress;
+                            newTrip.StartContactId = tripsToMerge[0].StartContactId;
+                            newTrip.StartKeyPointId = tripsToMerge[0].StartKeyPointId;
+
+                            if (tripsToMerge[0].ProposedStartContactIds) {
+                                newTrip.ProposedStartContactIds = tripsToMerge[0].ProposedStartContactIds;
+                            }
+
+                            return this._finalizeMerge(newTrip, tripsToMerge);
+                        }
+                    },
+                    _selectNewEnd: function(newEnd,trip) {
+                        var autoSave = trip === undefined;
+
+                        if(trip === undefined) {
+                            trip = this.internalTrip;
+                        }
+                        if(newEnd.Id==undefined && (newEnd.model!==undefined || newEnd.detail!==undefined)) {
+                            // we got called by a tap on a new endTrip
+                            newEnd = event.detail.item.trip;
+                        }
+
+                        console.log(newEnd, 'new end for trip selected for ', newEnd, trip);
+                        if (newEnd === null) return;
+
+                        var that = this;
+                        var tripsToMerge = [];
+                        var followingTrips = this._findFollowingTrips(trip);
+                        var endIdx = this.getIdxFromId(newEnd.Id, followingTrips);
+                        var newTrip = $.extend(true, {}, trip);
+
+                        if (endIdx > -1) {
+                            tripsToMerge = followingTrips.slice(0, endIdx + 1);
+                            tripsToMerge.unshift(trip);
+                            console.log('those are trips to merge', tripsToMerge, endIdx, followingTrips);
+
+                            /* all should fit together via keypointIds, because how we added them
+                             with _findFollowingTrips() */
+
+                            newTrip.EndTime = tripsToMerge[tripsToMerge.length-1].EndTime;
+                            newTrip.EndAddress = tripsToMerge[tripsToMerge.length-1].EndAddress;
+                            newTrip.EndContactId = tripsToMerge[tripsToMerge.length-1].EndContactId;
+                            newTrip.EndKeyPointId = tripsToMerge[tripsToMerge.length-1].EndKeyPointId;
+
+                            if (tripsToMerge[tripsToMerge.length-1].ProposedEndContactIds) {
+                                newTrip.ProposedEndContactIds = tripsToMerge[tripsToMerge.length-1].ProposedEndContactIds;
+                            }
+                            return this._finalizeMerge(newTrip, tripsToMerge);
+                        }
+                    },
+                    getEndContactTitle : function(trip) {
+                        if(trip.EndContactId==undefined) {
+                            return "Unbekannt";
+                        }
+                        ec = this.contactsById[trip.EndContactId];
+                        if(ec == undefined) {
+                            return "Unbekannt";
+                        }
+                        return ec.Title;
+
+                    },
+                    getStartContactTitle : function(trip) {
+                        if(trip.StartContactId==undefined) {
+                            return "Unbekannt";
+                        }
+                        ec = this.contactsById[trip.StartContactId];
+                        if(ec == undefined) {
+                            return "Unbekannt";
+                        }
+                        return ec.Title;
+                    },
+                    calcTripTitle: function(trip,noType) {
+                        if(trip===undefined) return "Error";
+                        if(noType===undefined) noType = false;
+                        if(trip.Distance===undefined) trip.Distance = 0;
+                        var txt = "";
+
+                        switch(trip.Type) {
+                            case 1 : {
+                                if(noType)
+                                    if(trip.EndContact)
+                                        txt += this.getEndContactTitle(trip);
+                                    else
+                                        txt += this.formatAddress(trip.StartAddress,true)
+                                else
+                                    txt += "Privatfahrt";
+                                break;
+                            }
+                            case 2 : {
+                                if(noType)
+                                    if(trip.EndContact)
+                                        txt += this.getEndContactTitle(trip);
+                                    else
+                                        txt += "Arbeitsweg";
+                                else
+                                    txt += "Arbeitsweg";
+                                break;
+                            }
+                            case 3 : {
+                                if(trip.IsReturnTrip) {
+                                    if(noType)
+                                        txt += "Rückfahrt - " + this.getStartContactTitle(trip);
+                                    else
+                                        txt += "Dienstfahrt, Rückfahrt von " + this.getStartContactTitle(trip);
+                                }
+                                else {
+                                    txt += this.getEndContactTitle(trip);
+                                }
+                                break;
+                            }
+                        }
+                        return txt;
+                    },
+                    translateKeyValue: function(k,v) {
+                        if (k=="type") {
+                            v = "trips_type_"+v;
+
+                        }
+                        if (this.t) {
+                            var kt = getTransMsg(k, this.t);
+                            var vt = getTransMsg(v.toString(), this.t);
+                            if(vt!=undefined && vt!="") v=vt;
+                            if(kt!=undefined && kt!="") k=kt;
+                        }
+                        return {
+                            k: k,
+                            v:v
+                        };
+                    },
+                    // calculates trip type & if trip is return trip
+                    calcTripType: function(trip) {
+                        trip.Type = 1;
+                        // 1 = Privat, 2 = Arbeitsweg, 3 = Dienstlich, 4 = Wohnort
+                        if(trip.StartContactId === undefined || trip.EndContactId === undefined || trip.Reviewed) {
+                            return trip;
+                        }
+                        var startContact = this.contactsById[trip.StartContactId];
+                        var endContact = this.contactsById[trip.EndContactId];
+                        if(endContact === undefined || startContact === undefined) {
+                            return trip;
+                        }
+                        var sc = startContact;
+                        var ec = endContact;
+
+                        if((ec.TripType==4 || ec.TripType==2) && sc.TripType==3) {
+                            trip.IsReturnTrip = true;
+                        }
+                        if(trip.IsReturnTrip) {
+                            ec = startContact;
+                            sc = endContact;
+                        }
+
+                        if (sc.TripType < 2 || ec.TripType < 2) {
+                            return trip;
+                        }
+
+                        var type = ec.TripType;
+                        if(ec.TripType==2 && sc.TripType!=4) {
+                            type = 3;
+                        }
+                        if(type==4) { // Wohnort
+                            type=sc.TripType;
+                        }
+                        if(type==4) { // Wohnort
+                            type=1;
+                        }
+
+                        trip.Type = type;
+
+                        return trip;
+
+                    },
+                    // calculates trip contacts if trip is not Reviewed & no contact was assigned yet.
+                    calcContacts: function(trip) {
+
+                        if (trip.StartContactId!=undefined && trip.StartContactId>=0) {
+                            var c = this.getIdxFromId(trip.StartContactId, this.contacts);
+                            if (c >= 0)
+                                trip.StartContact = this.contacts[c];
+                        }
+                        if (trip.EndContactId!=undefined && trip.EndContactId>=0) {
+                            var c = this.getIdxFromId(trip.EndContactId, this.contacts);
+                            if (c >= 0)
+                                trip.EndContact = this.contacts[c];
+                        }
+                        return trip;
+
+                    },
+                    _finalizeMerge: function(newTrip, tripsToMerge) {
+                        if (newTrip != undefined && newTrip != null
+                                && tripsToMerge != undefined && tripsToMerge != null) {
+
+                            newTripIdx = this.getIdxFromId(newTrip.Id,tripsToMerge);
+                            //newTrip.Description = tripsToMerge.length-1 + " Pausen: ";
+                            //newTrip.TrackIdInts = [];
+                            newTrip.Type = 0;
+
+
+                            for (var i = 0; i < tripsToMerge.length; i++) {
+                                if(i==newTripIdx) continue; // already set)
+                                // check/set tripType
+                                if (tripsToMerge[i].Type > newTrip.Type) {
+                                    newTrip.Type = tripsToMerge[i].Type;
+                                }
+
+                                if(newTrip.StartTime<tripsToMerge[i].StartTime) {
+                                    newTrip.TrackIdInts = newTrip.TrackIdInts.concat(tripsToMerge[i].TrackIdInts);
+                                    newTrip.Tracks = newTrip.Tracks.concat(tripsToMerge[i].Tracks);
+                                } else {
+                                    newTrip.TrackIdInts = tripsToMerge[i].TrackIdInts.concat(newTrip.TrackIdInts);
+                                    newTrip.Tracks = tripsToMerge[i].Tracks.concat(newTrip.Tracks);
+
+                                }
+                            }
+
+                            newTrip.Title = this.calcTripTitle(newTrip);
+                            newTrip.TrackIds = newTrip.TrackIdInts.join(',');
+
+                            console.log('merged trip', newTrip);
+
+                            return this._updateStartEndContacts(newTrip);
+
+
+                        }
+                    },
+
+                    _selectDriver: function(event) {
+                        this.set('internalTrip.DriverId', event.detail.value.driverid);
+                        console.log('selected DriverId', event.detail.value.driverid, this.internalTrip);
+                    },
+
+                    _startContactSelected: function(event) {
+                        if(this.internalTrip === undefined || this.internalTrip.StartContactId===undefined) {
+                            return;
+                        }
+                        this.internalTrip.Title =  this.calcTripTitle(this.internalTrip);
+                    },
+
+                    _endContactSelected: function(event) {
+                        if(this.internalTrip === undefined || this.internalTrip.EndContactId===undefined) return;
+                        this.internalTrip.Title =  this.calcTripTitle(this.internalTrip);
+                    },
+
+                    _contactsChanged: function() {
+                        if (this.internalTrip !== undefined) {
+                            this._updateStartEndContacts(this.internalTrip);
+                        }
+                    },
+
+                    _tripTypeChanged: function(type) {
+                        // console.log('trip-card triptypeChanged', this.internalTrip, type);
+                        if(this.internalTrip === undefined) {
+                            return;
+                        }
+                        this.set("internalTrip.Title",this.calcTripTitle(this.internalTrip));
+                        if (type == 1) {
+                            // private
+                            //this.playAnimation('hideBusinessContainer');
+                            this.set('internalTrip.Type', Number(type));
+                            //this.toggleClass('disabled', true, this.$$('.startEndAddr'));
+                            //this.$.tripStartAddrChooser.setAttribute('disabled', true);
+                            //this.$.tripEndAddrChooser.setAttribute('disabled', true);
+                        } else if (type == 2 || type == 3) {
+                            //this.playAnimation('showBusinessContainer');
+                            //this.$.trip_business_detail_container.style.display = 'inline-block';
+                            this.set('internalTrip.Type', Number(type));
+                            // this.toggleClass('disabled', false, this.$$('.startEndAddr'));
+                            //this.$.tripStartAddrChooser.removeAttribute('disabled');
+                            //this.$.tripEndAddrChooser.removeAttribute('disabled');
+                        }
+                        this.internalTrip.Title =  this.calcTripTitle(this.internalTrip);
+                    },
+
+                    _onAnimationFinish: function(event) {
+                        if (this.internalTrip.Type == 1) {
+                            //this.$.trip_business_detail_container.style.display = 'none';
+                        } else {
+                            //this.$.trip_business_detail_container.style.display = 'inline-block';
+                        }
+                    },
+
+                    _isReturnTripChanged: function(isReturnTrip) {
+                        /* console.log('trip-edit isReturnTripChanged', isReturnTrip); */
+
+                        if (isReturnTrip) {
+                            if (this.internalTrip.StartContactId !== undefined) {
+                                this.set('internalTrip.ContactId', this.internalTrip.StartContactId);
+                            }
+                        } else {
+                            if (this.internalTrip.EndContactId !== undefined) {
+                                this.set('internalTrip.ContactId', this.internalTrip.EndContactId);
+                            }
+                        }
+                        this.set("internalTrip.Title",this.calcTripTitle(this.internalTrip));
+                    },
+                    polish: function(trip) {
+                        if(trip.Reviewed!==-1 && trip.Reviewed)
+                            trip.Reviewed = 1;
+                        trip.IsReturnTrip = trip.IsReturnTrip?1:0;
+                        if(trip.StartContactId!==undefined) {
+                            trip.StartContactId = parseInt(trip.StartContactId);
+                        }
+                        if(trip.EndContactId!==undefined) {
+                            trip.EndContactId = parseInt(trip.EndContactId);
+                        }
+                        if(trip.DriverId!==undefined)
+                            trip.DriverId = Number(trip.DriverId);
+                        if(trip.ContactId!==undefined)
+                            trip.ContactId = Number(trip.ContactId);
+
+                        trip.Type = parseInt(trip.Type);
+                        /* save traffic */
+                        delete trip["TrackDetails"];
+                        delete trip["Tracks"];
+                        delete trip["StartAddress"];
+                        delete trip["History"];
+                        delete trip["EndAddress"];
+                        delete trip["StartKeyPoint"];
+                        delete trip["EndKeyPoint"];
+                        delete trip["StartContact"];
+                        delete trip["EndContact"];
+                        delete trip["StartTime"];
+                        delete trip["EndTime"];
+                        delete trip["ProposedStartContactIds"];
+                        delete trip["ProposedEndContactIds"];
+
+                        /* remove client-side stuff */
+                        delete trip["Device"];
+                        delete trip["Driver"];
+                        delete trip["highlighted"];
+                        delete trip["startContacts"];
+                        delete trip["endContacts"];
+                        delete trip["editableUntil"];
+                        delete trip["editableRemaining"];
+                        delete trip["editable"];
+                        delete trip["hidden"];
+
+                        return trip;
+                    },
+
+                    /********************
+                     * Contact create/update
+                     ********************/
+                    _createNewContactStart: function() {
+                        var address = this.internalTrip.StartAddress;
+                        this._contactCreatedIdStart = true;
+                        this.createNewContact(address);
+                    },
+
+                    _createNewContactEnd: function() {
+                        var address = this.internalTrip.EndAddress;
+                        this._contactCreatedIdStart = false;
+                        this.createNewContact(address);
+                    },
+
+                    createNewContact: function(address) {
+                        if (address != undefined && address != null) {
+                            this.set('internalTrip.ContactId', -1);
+                            var newContact = this.$.contactEdit.getNew();
+                            newContact.Address = address;
+                            this.selectedContact = newContact;
+                            this.$.contactEdit.set('contact', newContact);
+                            this.async(function(){
+                                this.set('selectedEditPage', "editContact");
+                            });
+
+                            // console.log('trip-edit createNewContact', address, a, this.$.contactEdit.internalContact);
+                        }
+                    },
+
+                    _onContactCreated: function(event) {
+                        console.log('trip-edit: contact was created', event);
+                        this.fire("contactCreated",event.detail);
+                        this.push("contacts",event.detail.updatedObject);
+                        if(this.trip) {
+                            this.trip = this._updateStartEndContacts(this.trip);
+                            this.set("trip.startContacts",this.trip.startContacts);
+                            this.set("trip.endContacts",this.trip.endContacts);
+                        }
+                        if(this.internalTrip) {
+                            if (this._contactCreatedIdStart) {
+                                this.set('internalTrip.StartContactId', this.selectedContact.Id);
+                                this.set('internalTrip.ContactId', this.selectedContact.Id);
+                            } else {
+                                this.set('internalTrip.EndContactId', this.selectedContact.Id);
+                                this.set('internalTrip.ContactId', this.selectedContact.Id);
+                            }
+                        }
+                        this.async(function(){
+                            this.set('selectedEditPage', "edit");
+                        });
+
+                    },
+
+                    /********************
+                     * Driver create/update
+                     ********************/
+                    newDriver: function(a) {
+                        var address = this.internalTrip.StartAddress;
+                        if (address != undefined && address != null) {
+                            this.set('internalTrip.DriverId', -1);
+                            var newDriver = this.$.driverEdit.getNew();
+                            newDriver.Address = address;
+                            this.selectedDriver = newDriver;
+                            this.$.driverEdit.set('driver', newDriver);
+                            this.async(function(){
+                                this.set('selectedEditPage', "editDriver");
+                            });
+                            // console.log('trip-edit createNewDriver', address, a, this.$.driverEdit.internalDriver);
+                        }
+                    },
+
+                    _onDriverCreated: function(event) {
+                        console.log('trip-edit: driver was created', event);
+                        this.fire("driverCreated",event.detail);
+                        this.push("drivers",event.detail.updatedObject);
+                        this.async(function(){
+                            this.set('internalTrip.DriverId', event.detail.updatedObject.Id);
+                            this.async(function(){
+                                this.set('selectedEditPage', "edit");
+                            });
+                        });
+                    },
+
+                    /********************
+                     * helper functions
+                     ********************/
+
+                    /**
+                     * if 2nd param false: returns whole date with time
+                     * if 2nd param true: only returns HH:mm
+                     */
+                    formatTime: function(ms, short) {
+                        return formatTime(ms,short);
+                    },
+                    formatAddress: function(address, short) {
+                        return formatAddress(address,short);
+                    },
+
+                    /**
+                     * Gets the index of the item with the given id
+                     * @param {number} id The id to search
+                     * @param {array} arr The array to scan
+                     * @returns {number}
+                     */
+                    getIdxFromId: function(id, arr) {
+                        for (var i = 0; i < arr.length; i++) {
+                            if(arr[i].Id == id) {
+                                return i;
+                            }
+                        }
+                        return -1;
+                    },
+                    updateTrips: function(trips) {
+                        if (trips && trips.length>0) {
+                            this.loading=true;
+                            this.$.ajaxTripUpdater.body["action"] = "update";
+                            this.$.ajaxTripUpdater.body["trips"] = JSON.stringify(trips);
+                            delete this.$.ajaxTripUpdater.body["trip"];
+
+                            this.$.ajaxTripUpdater.generateRequest();
+
+                        }
+                    },
+                    _negate: function(b) {
+                        return !b;
+                    }
+
+                }
+        );
+    </script>
+
+</dom-module>

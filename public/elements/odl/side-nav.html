@@ -1,0 +1,99 @@
+<link rel="import" href="../../components/polymer/polymer.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-submenu.html">
+
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icon/iron-icon.html">
+<link rel="import" href="odl-theme.html">
+<dom-module id="side-nav">
+
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            .menu-element { margin-left: 1em;}
+            .headline {
+                margin-left: 0.5em;
+                margin-top: 0em;
+                margin-bottom: 0.5em;
+                line-height: 1.5;
+                font-family: "Roboto", sans-serif;
+                font-weight: normal;
+                font-size: 15px;
+            }
+        </style>
+        <paper-menu class="icon left" on-iron-select="menuSelected" selected="{{selected}}">
+            <template is="dom-repeat" items="{{menuitems}}" as="group">
+                <!-- <span class="headline">{{group.groupName}}</span> -->
+                <paper-menu class$="menu-content [[ifTrue(isMobile,'mobile','desktop')]]">
+                    <template is="dom-repeat" items="{{group.items}}" as="menuitem" index-as="menuitem_no">
+                        <paper-submenu id="navmenu_{{menuitem.key}}">
+                            <paper-item class="menu-trigger" label="{{menuitem.title}}" on-tap="menuSelected" href="{{menuitem.href}}" id="{{getId(menuitem)}}" style="cursor:pointer;">
+                                <iron-icon icon="{{menuitem.icon}}"> </iron-icon> <span style="padding-left:5px;">{{menuitem.title}}</span>
+                            </paper-item>
+                            <paper-menu class="menu-content">
+                                <template is="dom-repeat" items="{{menuitem.subitems}}" as="submenuitem" index-as="submenuitem_no">
+                                    <paper-item class="menu-element" label="{{submenuitem.title}}" on-tap="menuSelected" href="{{submenuitem.href}}" id="{{getId(submenuitem)}}" style="cursor:pointer;">
+                                        <iron-icon icon="{{submenuitem.icon}}"> </iron-icon>
+                                        <span id="sNavTitle{{submenuitem.key}}" style="padding-left:5px;">{{submenuitem.title}}</span>
+                                        <paper-badge class="red" id="badge{{submenuitem.key}}" for="sNavTitle{{submenuitem.key}}" label="{{submenuitem.badgeLabel}}" class$="{{isEmpty(submenuitem.badgeLabel)}}"></paper-badge>
+                                        </div>
+                                    </paper-item>
+                                </template>
+                            </paper-menu>
+                        </paper-submenu>
+                    </template>
+                </paper-menu>
+            </template>
+        </paper-menu>
+    </template>
+
+    <script>
+        Polymer({
+            is: "side-nav",
+            properties: {
+                menuitems: {
+                    type: Object,
+                    notify: true
+                },
+                selected: {
+                    type: String,
+                    notify: true
+                },
+                isMobile: Boolean
+            },
+            ifTrue: function(isTrue,True,False) {
+                if(isTrue)  return True;
+                return False;
+            },
+            menuSelected: function(e,f,target) {
+
+                if(e.model!=undefined) {
+                    if(!e.model.menuitem) {
+                        e.model.menuitem = e.model.submenuitem;
+                    }
+                    var href = e.model.menuitem.href;
+                    //console.log(e,f,target,this,href);
+                    if(href) {
+                        window.location.href = href;
+                    } else {
+                        e.model.menuitem.onTap(e,f,target);
+                    }
+                    if(isMobile) {
+                        main.toggleDrawer();
+                    }
+                }
+            },
+            getId: function(item) {
+                return "nav_"+item.key;
+            },
+            isEmpty:function(s) {
+                if(!s) return "hidden";
+                return "visible";
+            }
+
+        });
+
+    </script>
+
+</dom-module>

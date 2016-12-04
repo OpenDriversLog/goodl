@@ -1,0 +1,34 @@
+package: github.com/OpenDriversLog/goodl
+ignore:
+- github.com/OpenDriversLog/goodl-lib
+- github.com/OpenDriversLog/webfw
+- github.com/OpenDriversLog/redistore
+- github.com/OpenDriversLog/odl-geocoder
+import:
+- package: github.com/gorilla/context
+- package: github.com/qiniu/iconv
+- package: github.com/gorilla/securecookie
+- package: github.com/Compufreak345/manners
+- package: github.com/fschl/sql-migrate
+- package: github.com/kr/text
+- package: github.com/kellydunn/golang-geo
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: golang.org/x/oauth2
+- package: golang.org/x/crypto
+  subpackages:
+  - bcrypt
+- package: github.com/Compufreak345/alice
+- package: github.com/julienschmidt/httprouter
+- package: github.com/tonnerre/golang-pretty
+- package: github.com/jung-kurt/gofpdf
+- package: github.com/gorilla/sessions
+- package: github.com/mattn/go-sqlite3
+- package: github.com/garyburd/redigo
+  subpackages:
+  - redis
+- package: github.com/Compufreak345/dbg
+- package: github.com/nu7hatch/gouuid
+- package: google.golang.org/grpc
+  version: ^1.0.2

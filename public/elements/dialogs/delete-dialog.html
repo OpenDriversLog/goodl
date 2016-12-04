@@ -1,0 +1,74 @@
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+
+<link rel="import" href="../odl/odl-theme.html">
+
+<dom-module id="delete-dialog">
+
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            #deleteDialog {
+                z-index:9999999999;
+                display:block;
+                right:auto;
+                left:auto;
+            }
+        </style>
+
+        <paper-dialog id="deleteDialog" no-cancel-on-outside-click no-cancel-on-esc-key always-on-top>
+            <p>Sind Sie sicher, dass Sie <span>[[itemDesc]]</span> löschen wollen?</p>
+            <div class="buttons">
+                <paper-button on-tap="cancel" id="delete_dialog_cancel" class="red">Abbrechen</paper-button>
+                <paper-button on-tap="confirm" id="delete_dialog_confirm" class="green">Löschen</paper-button>
+            </div>
+        </paper-dialog>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "delete-dialog",
+            properties: {
+                itemDesc: {
+                    type:String,
+                    value: "Unbekannt",
+                },
+                deleteFunc: {
+                    type: Object,
+                    value: null
+                },
+                cancelFunc: {
+                    type: Object,
+                    value: null
+                },
+                key: {
+                    type:String,
+                    reflectToAttribute:true
+                }
+            },
+            cancel: function() {
+                this.$.deleteDialog.close();
+                if(this.cancelFunc) {
+                    this.cancelFunc();
+                }
+                this.fire('canceled');
+
+            },
+            confirm: function() {
+                this.$.deleteDialog.close();
+                if(this.deleteFunc) {
+                    this.deleteFunc();
+                }
+                this.fire('confirmed');
+            },
+            show: function() {
+                //Polymer.dom(this.parentNode).appendChild(this.$.deleteDialog);
+                if(!this.$.deleteDialog.opened)
+                    this.$.deleteDialog.open();
+            }
+        });
+    </script>
+
+</dom-module>

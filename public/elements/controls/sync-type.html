@@ -1,0 +1,89 @@
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/iron-icons/communication-icons.html">
+<link rel="import" href="../../components/iron-icons/av-icons.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../odl/odl-theme.html">
+<dom-module id="sync-type">
+
+
+
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            .syncType-cardDav {
+                margin: 3px;
+                background: #ffb300;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            .syncType-calDav {
+                margin: 3px;
+                background: #81d4fa;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            .syncType-google {
+                margin: 3px;
+                background: #ce93d8;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            .syncType-apple {
+                margin: 3px;
+                background: #81c784;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            paper-material {
+                padding: 5px;
+            }
+
+        </style>
+        <span class="syncType-cardDav" hidden$="[[_isTypeNot(type,'cardDav')]]"><iron-icon icon="communication:contacts" title="[[t.cardDav]]"></iron-icon>
+            <span hidden$="{{!label}}">Privat</span>
+        </span>
+        <span class="syncType-calDav" hidden$="[[_isTypeNot(type,'calDav')]]"><iron-icon icon="communication:import-contacts" title="[[t.calDav]]"></iron-icon>
+                <span hidden$="{{!label}}">Arbeitsweg</span>
+        </span>
+        <span class="syncType-google" hidden$="[[_isTypeNot(type,'google')]]"><iron-icon icon="icons:android"  title="[[t.google]]"></iron-icon>
+                <span hidden$="{{!label}}">Dienstlich</span>
+        </span>
+        <span class="syncType-apple" hidden$="[[_isTypeNot(type,'apple')]]"><iron-icon icon="hardware:phone-iphone" title="[[t.apple]]"></iron-icon>
+                <span hidden$="{{!label}}">Wohnort</span>
+        </span>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "sync-type",
+
+            properties: {
+                type: {
+                    type: String,
+                    notify: true
+                },
+                label: {
+                    type: Boolean,
+                    value: false
+                }
+            },
+
+            create: function() {
+                // access a local DOM element by ID using this.$
+            },
+
+            ready: function() {
+                // access a local DOM element by ID using this.$
+                this.type = "google";
+                /* console.log('element sync-type created...', this.type); */
+            },
+            _isTypeNot(type,val) {
+                return type!=val;
+            }
+
+        });
+    </script>
+
+</dom-module>

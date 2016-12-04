@@ -1,0 +1,188 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../../components/neon-animation/neon-animation-runner-behavior.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+<link rel="import" href="../edits/car-edit.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+
+<dom-module id="car-list">
+    <template>
+        <carbon-route id="carsRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+        <style include="list-styles"></style>
+        <style include="odl-styles"></style>
+        <iron-ajax id="ajaxCarFetcher"
+                   url="../../../carMan"
+                   params='{ "action": "read" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="cars_pages"
+                             on-neon-animation-finish="_onPageChange" class="fit"
+                             selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+                             selected-item="{{selectedPage}}"
+        >
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" class="lhm-tab-animation fit">
+                <div class$="carList vertical layout fit">
+                    <paper-toolbar>
+                        <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                        <span class="title">Fahrzeuge</span>
+                        <div class="horizontal layout searchBar">
+                            <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                            <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaUserBox"></paper-badge>
+                            <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                            </paper-icon-button>
+                            <paper-icon-button  icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                            </paper-icon-button>
+                        </div>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="newCarBtn" icon="icons:add-circle" title="neues Fahrzeug" on-tap="_new" >+
+                        </paper-icon-button>
+                    </paper-toolbar>
+                    <paper-material elevation="2" class="vertical layout flex">
+                        <iron-list id="carIronList" items="{{cars}}" as="car" class="vertical layout fill">
+                            <template>
+                                <div class="list-item" carid="{{car.Id}}">
+                                    <paper-icon-item id="item_[[car.Id]]">
+                                        <iron-icon icon="maps:directions-car" title="Fahrzeug" item-icon></iron-icon>
+                                        <paper-item-body id="body_[[car.Id]]">
+                                            <div class="title">[[car.Plate]]</div>
+                                            <div class="thin">[[car.Type]]</div>
+                                            <div class="thin"><span>[[car.Mileage]]</span>km</div>
+                                        </paper-item-body>
+                                            <span secondary>
+                                                <paper-icon-button mini icon="icons:delete" on-tap="_delete" car="[[car]]" title="Löschen"></paper-icon-button>
+                                                <paper-icon-button mini icon="icons:create" on-tap="_edit" car="[[car]]" title="Bearbeiten"></paper-icon-button>
+                                            </span>
+                                    </paper-icon-item>
+
+                                </div>
+                            </template>
+                        </iron-list>
+                    </paper-material>
+
+                </div>
+            </neon-animatable>
+            <!-- Start page 1 / edit Car -->
+            <neon-animatable name="edit" class="lhm-tab-animation">
+                <car-edit
+                        hide-old-contacts="[[hideOldContacts]]"
+                        class$="fit scroll [[ifTrue(isMobile,'mobile','desktop')]]"
+                        loading="{{editLoading}}"
+                        drivers-by-id="{{driversById}}"
+                        drivers="{{drivers}}"
+                        id="carEdit"
+                        car="{{selectedCar}}"
+                        contacts="{{contacts}}"
+                        on-back="backToList"
+                        on-deleted="backToList"
+                        on-canceled="backToList"
+                        on-created="backToList"
+                        on-updated="backToList"
+                ></car-edit>
+            </neon-animatable>
+        </neon-animated-pages>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "car-list",
+
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                Polymer.NeonAnimationRunnerBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                cars: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                contacts: {
+                    type: Array,
+                    value: function() {
+                        return [];
+                    }
+                },
+                carsById: {
+                    type: Object,
+                    value: {},
+                    notify:true
+                },
+                drivers: {
+                    type:Array,
+                    value: [],
+                    notify:true
+                },driversById: {
+                    type: Object,
+                    value: {}
+                },
+                selectedCar: {
+                    type: Object,
+                    notify: true
+                },
+                map: Object,
+                hideOldContacts: Boolean
+
+            },
+            observers:[
+                "updateById(cars.*)",
+                "_selectedIdChanged(cars.*)"
+            ],
+            backToPage: function(event) {
+                switch(event.detail.type) {
+                    case "driver" :
+                    {
+                        this.set("routeParams.listSelectedName","edit");
+                        break;
+                    }
+                    case "car" :
+                        this.set("routeParams.selectedId",-1);
+                        this.set("routeParams.listSelectedName","list");
+                        break;
+                }
+            },
+
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "cars";
+                this.listNameUpper = "Cars";
+                this.fetcher = this.$.ajaxCarFetcher;
+                this.ironList = this.$$("#carIronList");
+                this.mobileIronList = this.$$("#mobileCarIronList");
+                this.$.ajaxCarFetcher.generateRequest();
+
+            }
+
+        });
+    </script>
+
+</dom-module>

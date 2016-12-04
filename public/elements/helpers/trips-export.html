@@ -1,0 +1,68 @@
+<dom-module id="trips-export">
+    <template>
+        <iron-ajax id="ajaxExporter"
+                   url="../../../export"
+                   content-type="application/x-www-form-urlencoded" body='{"format": "pdf" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   on-response="_handleExportResponse"
+                   on-error="_handleAjaxError"
+        >
+        </iron-ajax>
+        <iframe id="download_iframe" style="display:none;"></iframe>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "trips-export",
+            properties: {
+                loading : {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                }
+            },
+            ready: function() {
+                this.$.ajaxExporter.set("url",getReplacedAjaxUri(this.$.ajaxExporter.url));
+
+            },
+            export: function(format, minTime, maxTime, carId) {
+                this.loading = true;
+                if(this.$.ajaxExporter.activeRequests!=undefined) {
+                    $.each(this.$.ajaxExporter.activeRequests, function () { // cancel previous requests
+                        this.abort();
+                    });
+                }
+                this.loading = true;
+                this.$.ajaxExporter.body["format"] = format;
+                this.$.ajaxExporter.body["minTime"] = minTime;
+                this.$.ajaxExporter.body["maxTime"] = maxTime;
+                this.$.ajaxExporter.body["carId"] = carId;
+                this.$.ajaxExporter.generateRequest();
+            },
+            _handleExportResponse: function(request) {
+
+                if(request.detail.response == null) {
+                    showError(T("Error") + ": " + request.detail.statusText)
+                }
+                else if(!request.detail.response.Success) {
+                    showError(T("Error") + ": " + request.detail.response.ErrorMessage);
+                } else {
+                    var dPath = request.detail.response.ResPath;
+                    showStatus("Ihr Download sollte in Kürze beginnen - wenn nicht, klicken Sie bitte <a target='_blank' href='"+dPath+"'>hier</a>");
+                    this.$.download_iframe.src = dPath;
+                }
+                this.loading = false;
+
+            },
+            _handleAjaxError: function(e) {
+                handleAjaxError(e,this);
+                this.loading = false;
+            }
+        });
+    </script>
+
+</dom-module>
+

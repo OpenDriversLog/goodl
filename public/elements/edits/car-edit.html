@@ -1,0 +1,204 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+
+<link rel="import" href="driver-edit.html">
+<link rel="import" href="../behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+<link rel="import" href="../selectors/driver-selector.html">
+
+<dom-module id="car-edit">
+
+    <template>
+
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+
+        <iron-ajax id="ajaxCarDeleter"
+                   url="../../../carMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+        <iron-ajax id="ajaxCarCreator"
+                   url="../../../carMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+        <iron-ajax id="ajaxCarUpdater"
+                   url="../../../carMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="carEdit_pages" class="vertical layout fit" selected="{{realSelectedName}}"
+                     attr-for-selected="name"
+        >
+
+            <!-- Start page 0 / edit car -->
+            <neon-animatable name="edit" exit-animation="fade-out-animation"
+                             entry-animation="fade-in-animation"  class="vertical layout fit">
+                <paper-toolbar>
+                    <paper-icon-button id="carEdit_back" icon="arrow-back" title="zurück zur Fahrzeugliste" on-tap="back">
+                    </paper-icon-button>
+                    <div class="title">Fahrzeug bearbeiten</div>
+                    <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                    <paper-icon-button id="cancelButton" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+                    <paper-icon-button id="saveButton" icon="icons:save" on-tap="saveEdit" title="Speichern" disabled="[[saveDisabled]]"></paper-icon-button>
+                </paper-toolbar>
+
+                <paper-material id="carEdit" class="edit_padding">
+                    <form is="iron-form" id="formEditCar" method="POST">
+                        <paper-input auto-validate="true" id="car_edit_plate" name="plate" pattern="^[A-Z]{1,3}-[A-Z]{1,2} ?[0-9]{1,4}$" error-message="Bitte im Format 'AA-BB 123' angeben."  required label="Kennzeichen" type="text" value="{{internalCar.Plate}}"></paper-input>
+                        <paper-input id="car_edit_type" name="type"  required label="Typ" type="text" value="{{internalCar.Type}}"></paper-input>
+                        <driver-selector required id="driverSelector" drivers-by-id="{{driversById}}" drivers="{{drivers}}" selected-driver="{{internalCar.Owner}}" label="Primärer Fahrzeugführer" on-create-new="newDriver"></driver-selector>
+                    </form>
+                </paper-material>
+            </neon-animatable>
+
+            <!-- Start page 1 / edit driver -->
+            <div class="driverEditPage flex" name="editDriver">
+                <driver-edit hide-old-contacts="[[hideOldContacts]]"
+                             name="editDriver" id="driverEdit" driver="{{selectedDriver}}"
+                             contacts="{{contacts}}"
+                             on-created="_onDriverCreated"
+                             on-canceled="_onDriverEditCanceled"
+                             on-back="_onDriverEditCanceled"></driver-edit>
+            </div>
+        </neon-animated-pages>
+    </template>
+    <script>
+
+        Polymer({
+            is: "car-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+            properties: {
+                car: {
+                    type: Object,
+                    notify: true,
+                    observer:'_dtoChanged'
+                },
+                internalCar: {
+                    type: Object,
+                    notify:true,
+                    observer:"_internalCarChanged"
+                },
+                drivers: {
+                    type: Array,
+                    notify: true
+                },
+                driversById: {
+                    type: Object,
+                    value: {}
+                },
+                selectedName: {
+                    type: String,
+                    value: "edit"
+                },
+                realSelectedName: {
+                    type:String,
+                    computed:"getRealSelectedName(selectedName)"
+                },
+                selectedDriver: {
+                    type:Object,
+                    notify:true
+                },
+                hideOldContacts: Boolean,
+                contacts: {
+                    type: Array,
+                    value: function() {
+                        return [];
+                    }
+                }
+            },
+
+            /** ODLEditBehavior */
+            listeners:[
+                "_carCreated(created)",
+                "_carUpdated(updated)"
+            ],
+            getRealSelectedName: function(selectedName) {
+                if (selectedName) return selectedName;
+                return "edit"
+            },
+            getItemDesc: function(car) {
+                return "Fahrzeug " + this.getValString(car.Type) + " mit dem Kennzeichen " + this.getValString(car.Plate);
+            },
+            getNew: function() {
+                return {
+                    "Id": -1,
+                    "Owner" : {"Address":{}},
+                    "Type" : "",
+                    "Plate" : "",
+                    "FirstMileage": 0,
+                    "Mileage": 0,
+                    "FirstUseDate": 0
+                };
+            },
+
+            ready: function() {
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "car";
+                this.upperDtoName = "Car";
+                this.ajaxDeleter = this.$.ajaxCarDeleter;
+                this.ajaxCreator = this.$.ajaxCarCreator;
+                this.ajaxUpdater = this.$.ajaxCarUpdater;
+                this.selectedName = "edit";
+            },
+
+            /** car-edit funcs */
+            newDriver: function() {
+                this.selectedDriver = this.$.driverEdit.getNew();
+                this.selectedName="editDriver";
+            },
+
+            _onDriverCreated: function(event) {
+                var that = this;
+                this.internalCar.Owner = event.detail.updatedObject;
+                this.async(function(){
+                    this.selectedName = "edit";
+                    that.selectedDriver = that.internalCar.Owner;
+                    that.notifyPath("internalCar.Owner",that.internalCar.Owner);
+                });
+            },
+            _internalCarChanged:function(newVal) {
+                var that = this;
+                if(that.internalCar !== undefined && that.internalCar.Owner !== undefined) {
+                    that.selectedDriver = that.internalCar.Owner;
+                    that.notifyPath("internalCar.Owner",that.internalCar.Owner);
+                }
+            },
+            _onDriverEditCanceled: function(event) {
+                console.warn("car-edit onDriverEditCanceled", event);
+                this.selectedName = "edit";
+            }
+
+        });
+    </script>
+</dom-module>

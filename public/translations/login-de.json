@@ -1,0 +1,19 @@
+{
+  "loginTitle": "Login",
+  "loginMessage": "Bitte melden Sie sich an:",
+  "nologinyet": "Kein Problem. Bewerben Sie sich einfach für unser Beta-Programm, oder weil wir noch in der Alpha-Phase sind, registrieren Sie sich direkt.",
+  "nologinyettitle": "Noch keine Zugangsdaten?",
+  "register": "Registrieren",
+  "helpText_login":"Bitte geben Sie Ihren Benutzernamen und Ihr Passwort ein.",
+  "alreadyLoggedInTitle":"Hallo",
+  "alreadyLoggedIn":"Sie waren bereits angemeldet, was möchten Sie als nächstes tun? Benutzen Sie hierfür am besten die linke Navigationsleiste.",
+  "noPasswd":"Bitte geben Sie ein Passwort an.",
+  "accountNotActivated":"Ihr Account ist nicht aktiviert. Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link in Ihrer Bestätigungsmail. <br/> Sie haben keine Mail erhalten? Bitte kontaktieren Sie uns unter <a href=\"mailto:info@opendriverslog.de?subject=Fehler%20bei%20der%20Email-Aktivierung\"> info@opendriverslog.de</a>.",
+  "ActivationFailed":"Ihr Account konnte leider nicht aktiviert werden. Bitte überprüfen Sie, ob Sie den kompletten Link aus der E-Mail aufgerufen haben. Bei Problemen kontaktieren Sie uns bitte unter <a href=\"mailto:info@opendriverslog.de?subject=Fehler%20bei%20der%20Email-Aktivierung\"> info@opendriverslog.de</a>.",
+  "forgotPassword":"Passwort vergessen",
+  "ActivationSucessful":"Die Aktivierung war erfolgreich.",
+  "UserNotFound":"Leider wurde kein Nutzer mit dieser E-Mail-Adresse in unserer Datenbank gefunden. Bitte überprüfen Sie die Adresse oder kontaktieren Sie uns unter <a href=\"mailto:info@opendriverslog.de?subject=Nutzer%20nicht%20gefunden\">info@opendriverslog.de</a>.",
+  "accountLocked":"Leider ist Ihr Account auf Grund zu vieler fehlgeschlagener Anmeldungen derzeit gesperrt. Bitte versuchen Sie es in %v Minuten erneut.",
+  "mailAddress":"E-Mail",
+  "password":"Passwort"
+}

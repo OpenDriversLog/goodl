@@ -1,0 +1,317 @@
+[{
+    "id": "requestTimeout",
+    "translation": "Leider hat die Ausführung Ihrer Anfrage zu lange gedauert - bitte versuchen Sie es noch einmal. Sollte das Problem erneut auftreten, kontaktieren Sie uns bitte."
+},{
+    "id": "uploadSuccess",
+    "translation": "Done."
+}, {
+    "id": "uploadFail",
+    "translation": "Failed."
+}, {
+    "id": "Unknown format",
+    "translation": "Unbekanntes Format"
+}, {
+    "id": "No data",
+    "translation": "Keine Daten gefunden"
+}, {
+    "id": "Success",
+    "translation": "Erledigt :-)"
+}, {
+    "id": "No key provided for uploadData",
+    "translation": "Bitte einen Key angeben. "
+},  {
+    "id": "login_wrongCredentials",
+    "translation": "Falsches Passwort oder falsche E-Mail-Adresse."
+}, {
+    "id": "Oops",
+    "translation": "Hoppla"
+},  {
+    "id": "noPasswd",
+    "translation": "Bitte geben Sie ein Passwort an."
+}, {
+    "id": "Unknown error",
+    "translation": "Ein unbekannter Fehler ist aufgetreten. Bitte versuchen Sie es noch einmal oder kontaktieren Sie uns."
+}, {
+    "id": "Error",
+    "translation": "Entschuldigung, es ist ein Problem aufgetreten"
+},  {
+    "id": "trips_type_1",
+    "translation": "Geschäftsfahrt"
+},  {
+    "id": "trips_type_2",
+    "translation": "Arbeitsweg"
+}, {
+    "id": "trips_type_3",
+    "translation": "Privatfahrt"
+}, {
+    "id": "error_invalidEmail",
+    "translation": "Bitte geben Sie eine gültige E-Mail-Adresse an."
+}, {
+    "id": "error_insecurePassword",
+    "translation": "Ihr Passwort ist nicht sicher genug - bitte versuchen Sie, den Balken neben dem Passwortfeld durch Eingabe eines sicheren Passworts mindestens gelb zu färben.<br/> <b>Tipps</b>: Verwenden Sie Groß- und Kleinschreibung und mindestens 8 Zeichen. Zahlen und/oder Sonderzeichen tragen auch zur Sicherheit bei. Auch lange Sätze können gute Passwörter sein."
+}, {
+    "id": "error_passwordsNotMatch",
+    "translation": "Die Passwörter stimmen nicht überein."
+}, {
+    "id": "noPasswd",
+    "translation": "Bitte geben Sie ein Passwort an."
+}, {
+    "id": "User already exists",
+    "translation": "Es gibt bereits einen Nutzer mit dieser E-Mail-Adresse."
+}, {
+    "id": "Unknown error",
+    "translation": "Ein unbekannter Fehler ist aufgetreten. Bitte versuchen Sie es noch einmal oder kontaktieren Sie uns."
+}, {
+    "id": "RegisterMail_Heading",
+    "translation": "Registrierungsbestätigung & Account-Aktivierung"
+}, {
+    "id": "Mail_Start_neutral",
+    "translation": "Sehr geehrte(r) "
+}, {
+    "id": "Mail_Start_female",
+    "translation": "Sehr geehrte "
+}, {
+    "id": "Mail_Start_male",
+    "translation": "Sehr geehrter "
+}, {
+    "id": "RegisterMail_Middle",
+    "translation": "Vielen Dank für die Registrierung auf <a href=\"https://opendriverslog.de\">OpenDriversLog.de</a>. Um Ihren Account zu aktivieren, öffnen Sie bitte folgenden Link: "
+}, {
+    "id": "RegisterMail_End",
+    "translation": "Im Anschluss können Sie sich mit Ihrer E-Mail-Adresse unter <a href=\"https://opendriverslog.de/alpha/de/login\">https://opendriverslog.de/alpha/de/login</a> anmelden."
+}, {
+    "id": "Mail_End",
+    "translation": "<br/> Mit freundlichen Grüßen, <br/> Ihr OpenDriversLog-Team"
+}, {
+    "id": "Automail_Disclaimer",
+    "translation": "P.S.: Diese E-Mail wurde automatisch versendet. Bei Fragen zu unserem Dienst können Sie dennoch auf diese E-Mail antworten."
+}, {
+    "id": "Mr.",
+    "translation": "Herr"
+}, {
+    "id": "Ms.",
+    "translation": "Frau"
+}, {
+    "id": "Dr. (female)",
+    "translation": "Frau Dr."
+}, {
+    "id": "Dr. (male)",
+    "translation": "Herr Dr."
+}, {
+    "id": "Prof. (male)",
+    "translation": "Herr Professor"
+}, {
+    "id": "Prof. (female)",
+    "translation": "Frau Professor"
+}, {
+    "id": "user",
+    "translation": "Nutzer/Nutzerin"
+}, {
+    "id": "registerMail_subject",
+    "translation": "OpenDriversLog Account-Aktivierung"
+}, {
+    "id": "accountNotActivated",
+    "translation": "Ihr Account ist nicht aktiviert. Bitte bestätigen Sie Ihre E-Mail-Adresse über den Link in Ihrer Bestätigungsmail. <br/> Sie haben keine Mail erhalten? Bitte kontaktieren Sie uns unter <a href=\"mailto:info@opendriverslog.de?subject=Fehler%20bei%20der%20Email-Aktivierung\"> info@opendriverslog.de</a>."
+}, {
+    "id": "ActivationFailed",
+    "translation": "Ihr Account konnte leider nicht aktiviert werden. Bitte überprüfen Sie, ob Sie den kompletten Link aus der E-Mail aufgerufen haben. Bei Problemen kontaktieren Sie uns bitte unter <a href=\"mailto:info@opendriverslog.de?subject=Fehler%20bei%20der%20Email-Aktivierung\"> info@opendriverslog.de</a>."
+},  {
+    "id": "save",
+    "translation": "Speichern"
+}, {
+    "id": "status",
+    "translation": "Hinweis"
+}, {
+    "id": "error",
+    "translation": "Fehler"
+}, {
+    "id": "ActivationSucessful",
+    "translation": "Die Aktivierung war erfolgreich. Sie können sich nun einloggen."
+}, {
+    "id": "inviteInvalid",
+    "translation": "Leider ist Ihre Einladung nicht gültig. Bitte beachten Sie, dass eine Einladung nur für eine einzige Registrierung verwendet werden kann. Sollten Sie Probleme bei mit Ihrer Einladung haben, wenden Sie sich bitte an <a href=\"mailto:info@opendriverslog.de?subject=Problem%20bei%20der%20Freischaltung%20zur%20Registrierung\"> "
+}, {
+    "id": "settingsChanged",
+    "translation": "Ihre Einstellungen wurden erfolgreich geändert."
+}, {
+    "id": "settings_passwordChanged",
+    "translation": "Passwort geändert"
+}, {
+    "id": "settings_tutorialDisabledChanged",
+    "translation" : "Tutorial deaktiviert / aktiviert"
+},{
+    "id": "settings_emailChanged",
+    "translation": "E-Mail-Adresse geändert zu: "
+}, {
+    "id": "settings_firstNameChanged",
+    "translation": "Vorname geändert"
+}, {
+    "id": "settings_lastNameChanged",
+    "translation": "Nachname geändert"
+}, {
+    "id": "settings_levelChanged",
+    "translation": "Adminlevel geändert"
+}, {
+    "id": "settings_titleChanged",
+    "translation": "Ansprache geändert"
+}, {
+    "id": "settings_activationKeyChanged",
+    "translation": "Aktivierungsschlüssel geändert"
+}, {
+    "id": "editUserMail_Subject",
+    "translation": "Ihre Account-Daten wurden geändert (OpenDriversLog)"
+}, {
+    "id": "editUserMail_Middle",
+    "translation": "Ihre Account-Daten auf <a href=\"www.opendriverslog.de\">www.opendriverslog.de</a> wurden geändert. Sollten Sie die Änderungen nicht vorgenommen haben, könnte ihr Account kompromittiert sein - wenden Sie sich in diesem Fall bitte sofort an uns unter <a href=\"mailto:info@opendriverslog.de?subject=Nutzerdaten%20geändert\"> info@opendriverslog.de</a>. Folgende Änderungen wurden vorgenommen: <br/> "
+}, {
+    "id": "previously",
+    "translation": "ehemals"
+}, {
+    "id": "userDataChangedStatus",
+    "translation": "Ihr Daten wurden erfolgreich geändert."
+}, {
+    "id": "resetKeyInvalid",
+    "translation": "Leider ist Ihr Schlüssel zum zurücksetzen des Passwort nicht gültig. Bitte beachten Sie, dass ein Schlüssel maximal 3 Stunden gültig ist und nur einmal verwendet werden kann. Sie können über <a href=\"./resetPassword\"> Passwort vergessen </a> einen neuen Schlüssel anfordern. "
+}, {
+    "id": "ResetPwMailComing",
+    "translation": "Eine E-Mail mit einem Link zum Zurücksetzen des Passworts ist auf dem Weg. Bitte bearbeiten Sie die Mail innerhalb von 3 Stunden, sonst verliert die E-Mail ihre Gültigkeit."
+}, {
+    "id": "ResetPwMail_Middle",
+    "translation": "Um Ihr Passwort zurückzusetzen, verwenden Sie bitte folgenden Link. Sollten Sie diese E-Mail nicht angefordert haben, könnte gerade jemand versuchen Ihren Account anzugreifen. Tritt dies wiederholt auf, informieren Sie uns bitte."
+}, {
+    "id": "resetPwMail_subject",
+    "translation": "Passwort zurücksetzen (OpenDriversLog)"
+}, {
+    "id": "ResetPwMail_End",
+    "translation": "Bitte bearbeiten Sie diese Mail innerhalb von 3 Stunden, sonst verliert der Link seine Gültigkeit."
+}, {
+    "id": "resetPasswordDone",
+    "translation": "Ihr Passwort wurde erfolgreich geändert. Sie können sich nun anmelden."
+}, {
+    "id": "UserNotFound",
+    "translation": "Leider wurde kein Nutzer mit dieser E-Mail-Adresse in unserer Datenbank gefunden. Bitte überprüfen Sie die Adresse oder kontaktieren Sie uns unter <a href=\"mailto:info@opendriverslog.de?subject=Nutzer%20nicht%20gefunden\">info@opendriverslog.de</a>."
+}, {
+    "id": "thanks",
+    "translation": "Danke"
+}, {
+    "id": "accountLocked",
+    "translation": "Leider ist Ihr Account auf Grund zu vieler fehlgeschlagener Anmeldungen derzeit gesperrt. Bitte versuchen Sie es in %v Minuten erneut."
+}, {
+    "id": "metaData",
+    "translation": "Automatisch erzeugte Daten: "
+}, {
+    "id": "emptyMessage",
+    "translation": "Bitte geben Sie eine Nachricht ein."
+}, {
+    "id": "Report_successful",
+    "translation": "Vielen Dank - ihre Nachricht wurde erfolgreich versendet. Wir melden uns schnellstmöglich bei Ihnen."
+}, {
+    "id": "syncDB_error_missing_header",
+    "translation": "Error - missing heading"
+}, {
+    "id": "syncDB_error_forbidden_header",
+    "translation": "Error - forbidden heading"
+}, {
+    "id": "syncDB_error_insert_data",
+    "translation": "Error - forbidden heading"
+}, {
+    "id": "syncDB_error_no_key",
+    "translation": "Error - fehlender Geräteschlüssel"
+}, {
+    "id": "syncDB_error_bad_formatGDS",
+    "translation": "Bad format for GetDataSince"
+}, {
+    "id": "syncDB_error_bad_formatGDB",
+    "translation": "Bad format for GetDataBefore"
+}, {
+    "id": "syncDB_error_bad_formatCSV",
+    "translation": "CSV not created in SyncDBController (2)"
+},{
+    "id": "tooLongStop",
+    "translation": "Ein Zwischenstop von mehr als 2 Stunden kann leider nicht entfernt werden."
+}, {
+    "id": "Not Found",
+    "translation": "Leider konnte die angeforderte Seite nicht gefunden werden."
+}, {
+    "id": "Internal Server Error",
+    "translation": "Ein interner Fehler ist aufgetreten."
+},  {
+    "id": "internal server error",
+    "translation": "Ein interner Fehler ist aufgetreten."
+}, {
+    "id": "error_PleaseLogin",
+    "translation": "Sie sind derzeit nicht angemeldet. Bitte <a href='./login'>melden Sie sich an</a>, um einen Fehlerbericht zu erstellen."
+}, {
+    "id": "Pause",
+    "translation": "Pause (z.B. Rastplatz)"
+}, {
+    "id": "FuelStop",
+    "translation": "Tankstopp"
+}, {
+    "id": "landingpage_selfEmployed",
+    "translation": "Selbstständige"
+}, {
+    "id": "landingpage_employee",
+    "translation": "Angestellter"
+}, {
+    "id": "landingpage_accountant",
+    "translation": "Steuerberater"
+}, {
+    "id": "landingpage_fleetOwner",
+    "translation": "Flottenbetreiber"
+}, {
+    "id":"Car already used for some tracks - can not delete car.",
+    "translation": "Fahrzeug wird bereits für manche Strecken verwendet - das Fahrzeug kann nicht gelöscht werden."
+}, {
+    "id":"Driver still used for some cars or tracks - can't delete driver.",
+    "translation": "Der Fahrer ist noch Fahrzeugen und/oder Strecken zugeordnet und kann nicht gelöscht werden."
+}, {
+    "id":"Device already has data - can't be deleted.",
+    "translation": "Dem Gerät sind bereits Daten zugeordnet und es kann nicht gelöscht werden."
+}, {
+    "id": "Trips",
+    "translation": "Fahrten"
+}, {
+    "id": "Trip to update could not be found",
+    "translation": "Die zu aktualisierende Fahrt wurde nicht gefunden."
+}, {
+    "id": "Trip is too old to review",
+    "translation": "Die Fahrt kann nicht mehr bearbeitet werden, da die zu weit in der Vergangenheit liegt"
+}, {
+    "id": "Trip Type change from private is not permitted",
+    "translation": "Die Änderung des Fahrtentyps von Privat zu etwas anderem ist nicht gestattet."
+}, {
+    "id": "Trip update not successful. Database error!",
+    "translation": "Bearbeiten der Fahrt fehlgeschlagen. Datenbankfehler!"
+}, {
+    "id": "Trip update failed internally.",
+    "translation": "Bearbeiten der Fahrt fehlgeschlagen. Interner Fehler!"
+}, {
+    "id": "Trip update affected nothing.",
+    "translation": "Bearbeitung ergab keine Änderungen."
+}, {
+    "id":"Can't merge tracks with stops >2 hours",
+    "translation": "Strecken mit einem Abstand von mehr als 2 Stunden können nicht zusammengefasst werden."
+}, {
+    "id": "No trips selected",
+    "translation": "Keine Fahrten ausgewählt."
+}, {
+    "id": "settings_notificationsEnabledChanged",
+    "translation": "Erinnerungsmails deaktiviert/aktiviert."
+}, {
+    "id": "TripReminderSubject",
+    "translation": "Erinnerung : OpenDriversLog Fahrtenbuch"
+}, {
+    "id": "TripReminderMessage",
+    "translation": "_*_Anrede_*_, \r\n Die gesetzlichen Vorgaben zum Fahrtenbuch sehen vor, dass Sie Ihre Fahrten innerhalb von 7 Tagen bestätigen müssen. Es verbleiben noch 3 Tage, bevor wir Ihre unbestätigten Fahrten automatisch als privat markieren müssen. Bitte überprüfen Sie Ihre Fahrten unter http://localhost:4000/alpha/de/odl/lhm/trips/list/-1 . "
+}, {
+    "id": "TripReminderShortMessage",
+    "translation": "Bitte überprüfen Sie Ihre unerledigten Fahrten, bevor die Bearbeitungszeit abläuft."
+}, {
+    "id":"Data already imported",
+    "translation":"Es wurden bereits Daten für diesen Zeitraum hochgeladen."
+}, {
+    "id":"No new data provided",
+    "translation": "Keine neuen Daten gefunden."
+}
+]

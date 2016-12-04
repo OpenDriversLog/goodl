@@ -1,0 +1,69 @@
+<link rel="import" href="../../elements/odl/odl-theme.html">
+<link rel="import" href="../../elements/behaviors/odl-behavior.html">
+
+<link rel="import" href="../../components/i18-n/i18-n.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+
+<dom-module id="page-invite">
+    <template>
+        <iron-ajax id="getInvite"
+                   on-response="_inviteResponse"
+                   params='{"do":"newKey", "ajax":"true"}'
+                   url="../../../invite"
+                   handle-as="text"
+        ></iron-ajax>
+        <style include="odl-styles"></style>
+        <div class="vertical layout flex">
+            <div>Key : <a href="{{key}}" id="inviteKey">{{key}}</a></div>
+            <paper-button on-tap="_newInvite">New invite</paper-button>
+
+        </div>
+    </template>
+    <script>
+        Polymer({
+            is: "page-invite",
+            properties: {
+                key: {
+                    type:String,
+                    value:""
+                }
+
+            },
+            behaviors:[OdlBehaviors.OdlBehavior],
+            ready:function() {
+                this.$.getInvite.set("url",getReplacedAjaxUri(this.$.getInvite.url));
+
+                console.log("page-invite ready!");
+                this._newInvite();
+
+            },
+            getHelpText: function(){
+                if(this.t && this.t.helpText_invite) {
+                    return this.t.helpText_invite;
+                } else {
+                    return "Unknown";
+                }
+            },
+            _onTranslationUpdate:function(t) {
+                if(this.t) {
+                    this.navFunctions=[
+                        //{key:'Function',title: this.t["Function"], icon: 'dns', href:'javascript:alert("Implement me!"'}
+                    ];
+                    this.fire("new-nav-functions");
+                }
+            },
+            _newInvite : function() {
+                this.$.getInvite.generateRequest();
+            },
+            _inviteResponse: function(request) {
+                if(request.detail.response) {
+                    this.key=request.detail.response;
+                } else {
+                    showResultErrors(request.detail.response);
+                }
+            }
+        });
+
+    </script>
+
+</dom-module>

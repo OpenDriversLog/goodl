@@ -1,0 +1,11 @@
+{
+  "resetPasswordTitle":"Passwort zurücksetzen",
+  "resetPasswordText":"Bitte geben Sie Ihre E-Mail-Adresse an, um einen Link zum Erstellen eines neuen Passworts per E-Mail zu erhalten.",
+  "resetKeyInvalid":"Leider ist Ihr Schlüssel zum zurücksetzen des Passwort nicht gültig. Bitte beachten Sie, dass ein Schlüssel maximal 3 Stunden gültig ist und nur einmal verwendet werden kann. Sie können über <a href=\"./odl/resetPassword\"> Passwort vergessen </a> einen neuen Schlüssel anfordern. ",
+  "ResetPwMailComing":"Eine E-Mail mit einem Link zum Zurücksetzen des Passworts ist auf dem Weg. Bitte bearbeiten Sie die Mail innerhalb von 3 Stunden, sonst verliert die E-Mail ihre Gültigkeit.",
+  "newPasswordFormText":"Bitte geben Sie ein neues Passwort ein.",
+  "resetPasswordDone":"Ihr Passwort wurde erfolgreich geändert. Sie können sich nun anmelden.",
+  "helpText_resetPassword":"Bitte geben Sie Ihre E-Mail-Adresse an, um einen Link zum Erstellen eines neuen Passworts per E-Mail zu erhalten.",
+  "UserNotFound": "Leider wurde kein Nutzer mit dieser E-Mail-Adresse in unserer Datenbank gefunden. Bitte überprüfen Sie die Adresse oder kontaktieren Sie uns unter <a href=\"mailto:info@opendriverslog.de?subject=Nutzer%20nicht%20gefunden\">info@opendriverslog.de</a>."
+
+}

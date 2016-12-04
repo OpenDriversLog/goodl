@@ -1,0 +1,207 @@
+<link rel="import" href="../../components/polymer/polymer.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-map.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-geojson.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-draw.html">
+
+<dom-module id="keypoint-map-item">
+
+    <template>
+
+        <leaflet-marker opacity="[[opacity]]" style="display:none;" color="[[color]]" id="noContactMarker"
+                        latitude="{{keypoint.Latitude}}" longitude="{{keypoint.Longitude}}"
+                        icon="[[keypointIcon]]"></leaflet-marker>
+        <leaflet-marker opacity="[[opacity]]" style="display:none;" color="[[color]]" id="mergedMarker"
+                        latitude="{{keypoint.Latitude}}" longitude="{{keypoint.Longitude}}"
+                        icon="[[mergedIcon]]"></leaflet-marker>
+        <leaflet-marker opacity="[[opacity]]" style="display:none;" color="[[color]]" id="keypointMarker"
+                        latitude="{{keypoint.Latitude}}" longitude="{{keypoint.Longitude}}"
+                        icon="[[carIcon]]"></leaflet-marker>
+        <leaflet-polyline id="stupidLine" opacity="[[opacity]]"  color="[[color]]" fill-color="[[color]]">
+            <leaflet-point id="point1" latitude="{{keypoint.Latitude}}"
+                           longitude="{{keypoint.Longitude}}"></leaflet-point>
+            <leaflet-point id="point2" latitude="{{matchingContact.Address.Latitude}}"
+                           longitude="{{matchingContact.Address.Longitude}}"></leaflet-point>
+        </leaflet-polyline>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "keypoint-map-item",
+            properties: {
+                keypoint: {
+                    type: Object,
+                    value: {}
+                },
+                matchingContact: {
+                    type: Object,
+                    observer: '_matchingContactChanged',
+                    value: undefined,
+                    notify: true
+                },
+                color: {
+                    type:String,
+                    value:"#FFCC00",
+                    observer:"_colorChanged"
+                },
+                container: {
+                    type: Object,
+                    observer: '_containerChanged'
+                },
+                hasMatchingContact: {
+                    type:Boolean,
+                    value:false,
+                    notify: true
+                },
+                markerTitle: {
+                    type: String,
+                    value: "Empty",
+                    observer: "_markerTitleChanged"
+                },
+                isMerged: {
+                    type: Boolean,
+                    observer: '_matchingContactChanged'
+                },
+                delayedcontainer: {
+                    type: Object
+                },
+                carIcon: {
+                    type: Object,
+                    value: function () {
+                        return L.MakiMarkers.icon({
+                            icon: "parking",
+                            color: "#FFCC00",
+                            size: "t"
+                        });
+                    }
+                },
+                keypointIcon: {
+                    type: Object,
+                    value: function () {
+                        return L.MakiMarkers.icon({
+                            icon: "golf",
+                            color: "#FFCC00",
+                            size: "s"
+                        });
+                    }
+                },
+                mergedIcon: {
+                    type: Object,
+                    value: function () {
+                        return L.MakiMarkers.icon({
+                            icon: "car",
+                            color: "#FFCC00",
+                            size: "t"
+                        });
+                    }
+                },
+                opacity:{
+                    type:Number,
+                    value:0.75
+                }
+            },
+            _colorChanged: function() {
+                if(this.color !== undefined) {
+
+                    this.set("carIcon",L.MakiMarkers.icon({
+                        icon: "parking",
+                        color: this.color,
+                        size: "t"
+                    }));
+                    this.set("mergedIcon",L.MakiMarkers.icon({
+                        icon: "car",
+                        color: this.color,
+                        size: "t"
+                    }));
+                    this.set("keypointIcon", L.MakiMarkers.icon({
+                        icon: "golf",
+                        color: this.color,
+                        size: "s"
+                    }));
+                }
+            },
+            _containerChanged: function(newVal, oldVal) {
+                this.delayedcontainer = this.container;
+                this._matchingContactChanged();
+            },
+            detached: function() {
+
+                var that = this;
+                this.async(function(){
+                    that.detach(that.$.stupidLine);
+                    that.detach(that.$.keypointMarker);
+                    that.detach(that.$.noContactMarker);
+                    that.detach(that.$.mergedMarker);
+
+                });
+            },
+            attachAll: function() {
+                if (this.hasMatchingContact) {
+                    this.attach(this.$.stupidLine);
+                    this.attach(this.$.keypointMarker);
+                    this.detach(this.$.noContactMarker);
+                    this.detach(this.$.mergedMarker);
+
+                }
+                else {
+                    this.detach(this.$.stupidLine);
+                    this.detach(this.$.keypointMarker);
+                    if(this.isMerged===true) {
+                        this.detach(this.$.noContactMarker);
+                        this.attach(this.$.mergedMarker);
+                    } else {
+                        this.detach(this.$.mergedMarker);
+                        this.attach(this.$.noContactMarker);
+                    }
+                }
+            },
+            _matchingContactChanged: function(newVal,oldVal) {
+
+                var that = this;
+                if(that.keypoint === undefined) {
+                    that.detached();
+                    return;
+                }
+                window.setTimeout(function(){
+                    that.hasMatchingContact = that.matchingContact!=undefined && that.matchingContact.Address != undefined && that.matchingContact.Address.Latitude!=undefined;
+                    // TODO: Find the root cause why creating a new contact
+                    // causes an error in "updatePointContent"-method not finding the attributes
+                    // latitude and longitude for the leaflet-point inside "stupidLine" when using dom-if
+                    // instead of this STUPID workaround.
+                    that.attachAll();
+
+                    that.injectMarkerTitle(that);
+                },500);
+            },
+            attach: function(el) {
+                if (el!=null && el.detached) {
+                    el.container = this.delayedcontainer;
+                }
+            },
+            detach: function(el) {
+                if (el!=null && el.detached) {
+                    el.detached();
+                    el.container = null;
+                }
+            },
+            _markerTitleChanged: function(newVal,oldVal) {
+                var that = this;
+                window.setTimeout(function(){
+                    that.injectMarkerTitle(that);
+                },500);
+            },
+            injectMarkerTitle: function(that) {
+                if(that.$$('leaflet-marker')!=undefined) {
+                    $.each(
+                            that.querySelectorAll('leaflet-marker'),function(){
+                                Polymer.dom(this).innerHTML = that.markerTitle;
+                            });
+                } else {
+                    window.setTimeout(function(){that.injectMarkerTitle(that)},100);
+                }
+            }
+        });
+    </script>
+
+</dom-module>
+

@@ -1,0 +1,20 @@
+hub:
+  image: selenium/hub:latest
+  ports:
+    - 4444:4444
+
+node_ff:
+  image: selenium/node-firefox:latest
+  ports:
+    - 5900
+  links:
+    - hub:hub
+
+node_chrome:
+  image: selenium/node-chrome:latest
+  ports:
+    - 5900
+  links:
+    - hub:hub
+  volumes:
+    - /dev/shm:/dev/shm

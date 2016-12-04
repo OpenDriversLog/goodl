@@ -1,0 +1,70 @@
+<link rel="import" href="../../components/iron-fit-behavior/iron-fit-behavior.html">
+<link rel="import" href="../../elements/behaviors/odl-editbehavior.html">
+<script>
+    var OdlBehaviors = OdlBehaviors || {};
+
+    OdlBehaviors._OdlSyncBehavior = {
+        properties: {
+            ajaxSyncer: { // The iron-ajax object needed to get the list entries
+                type: Object,
+                observer: "_syncerChanged",
+                value: undefined
+            }
+        },
+        _singleLoadingChanged: function() {
+            this.loading = this.ajaxLoading ||  this.otherLoading1 || this.otherLoading2;
+        },
+        /**
+         * Adds the responseListener to the syncer (iron-ajax)
+         * @private
+         */
+        _syncerChanged: function() {
+            if (this.syncer != undefined) {
+                var that = this;
+                this.syncer.addEventListener("response",
+                        function(request) {
+                            that._handleAjaxSyncerResponse(request);
+                        });
+                this.syncer.addEventListener("error",
+                        function(e) {
+                            that._handleAjaxSyncerResponse(e);
+                        });
+            }
+        },
+        refresh: function() {
+            this.syncer.generateRequest();
+        },
+        /**
+         * Handle the sync syncers response (iron-ajax)
+         * @param request
+         * @private
+         */
+        _handleAjaxSyncerResponse: function(request) {
+            unload(this.lowerDtoName);
+            if(request.detail.response == null) {
+                showError(T("Error") + ": " + request.detail.statusText)
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            }
+            else if(request.detail.response.Success == false) {
+                showResultErrors(request.detail.response,this.t);
+                this.fire('error',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+            } else {
+                if(this[this.lowerDtoName] && this[this.lowerDtoName].Id==request.detail.response.Id) {
+                    this[this.lowerDtoName] = $.extend(true, {}, this[this._internalDtoName]);
+                    this.fire('synced',{type:this.lowerDtoName,updatedObject:this[this.lowerDtoName],response:request.detail.response});
+                } else {
+                    this.fire('synced',{type:this.lowerDtoName,updatedObject:undefined,response:request.detail.response})
+                }
+                showToast(T("updateSuccessful"));
+            }
+
+            this.$.saveButton.disabled = false;
+            this.$.cancelButton.disabled = false;
+            this.loading = false;
+        },
+        _handleAjaxError: function(e) {
+            handleAjaxError(e,this);
+        }
+    };
+    OdlBehaviors.OdlSyncBehavior = [OdlBehaviors.OdlEditBehavior,OdlBehaviors._OdlSyncBehavior]
+</script>

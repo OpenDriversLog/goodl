@@ -1,0 +1,112 @@
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<dom-module id="lazy-loader">
+    <template>
+<span id="myContent" class="fit">
+        <template is="dom-if" if="{{loaded}}" restamp>
+            <content></content>
+        </template>
+    <template is="dom-if" if="{{!loaded}}">
+        <div style="margin:1em;">
+            <paper-spinner active></paper-spinner>
+        </div>
+    </template>
+    </span>
+    </template>
+    <script>
+        window.lazyLoaded = window.lazyLoaded || [];
+        Polymer({
+            is: "lazy-loader",
+            properties: {
+                href: {
+                    type: String,
+                    value: ""
+                },
+                loading: {
+                    type: Boolean,
+                    value: false
+                },
+                loaded: {
+                    type: Boolean,
+                    value: false,
+                    observer:"_loaded"
+                },
+                finishFunc:{
+                    type:Object
+                },
+                element:{
+                    type:String,
+                    value:""
+                }
+
+            },
+            _loaded: function(newVal) {
+                if(newVal) {
+                    console.log("Loaded ", this.href)
+                }
+            },
+            load: function (finishFunc) {
+                if (!this.loading && !this.loaded) {
+                    if (!this.element) {
+                        this.element = this.href.split('/').reverse()[0];
+                        this.element = this.element.split(".")[0];
+                    }
+                    this.loading = true;
+                    if (window.lazyLoaded.indexOf(this.href) === -1) {
+                        var that = this;
+                        this.importHref(this.href, function (e) {
+                            window.lazyLoaded.push(that.href);
+                            that.attachElement(finishFunc);
+
+                        }, function (e) {
+                            console.error("Error importing " + that.href);
+                            Polymer.dom(that.$.content).innerHTML = T("Error_loading");
+                            debugger;
+                        });
+                    } else {
+                        console.log("Already loaded " + this.href);
+                        this.attachElement(finishFunc);
+                    }
+                } else {
+                    if (!this.loading && this.loaded) {
+                        console.log("Already loaded " + this.href);
+                        this.fire("loaded");
+
+                        if (finishFunc && typeof(finishFunc) === "function") {
+                            finishFunc(this.querySelector(this.element));
+                        }
+                    }
+                }
+            },
+            attachElement: function (finishFunc) {
+                if (!this.loaded) {
+                    this.loading = true;
+                    this.finishFunc = finishFunc;
+                    this.loaded = true;
+                    this._finishLoad(finishFunc);
+
+                }
+            },
+            _finishLoad: function(finishFunc) {
+                this.async(function() {
+                    if (this.finishFunc && typeof(this.finishFunc) === "function") {
+                        var el = this.$.myContent.getElementsByTagName(this.element);
+                        if(el && el.length>0) {
+                            el = el[0];
+                            if(el) {
+                                el.lazyLoader=this;
+                            }
+                        } else {
+                            var that = this;
+                            window.setTimeout(function(){that._finishLoad(finishFunc)},100);
+                            return;
+                        }
+                        this.finishFunc(el);
+                    }
+                    this.loading = false;
+                    this.fire("loaded");
+                });
+            }
+        });
+    </script>
+
+</dom-module>

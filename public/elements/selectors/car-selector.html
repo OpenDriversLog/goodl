@@ -1,0 +1,96 @@
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../helpers/address-helper.html">
+<link rel="import" href="../behaviors/odl-selectorbehavior.html">
+<dom-module id="car-selector">
+    <template>
+        <style include="odl-styles">
+            :host([invalid]) paper-dropdown-menu {
+                border: dotted red;
+            }
+            .smallMenu {
+                width:0px;
+                height:0px;
+                overflow:hidden;
+            }
+
+        </style>
+        <div class$="{{_smallClass(small)}}">
+            <paper-dropdown-menu id="carSelector"
+                                 label="[[label]]" attr-for-selected="car-id"
+                                 selected="{{selectedId}}" always-float-label
+            >
+                <paper-menu attr-for-selected="car-id"
+                            selected="{{selectedId}}" class="dropdown-content">
+                    <div hidden$="{{createDisabled}}">
+                        <paper-item car-id="0" on-tap="_createNew" label="Bitte auswählen">
+                            <paper-item-body>
+                                Neues Fahrzeug anlegen
+                            </paper-item-body>
+                        </paper-item>
+                    </div>
+                    <template is="dom-repeat" items="[[cars]]" as="c">
+                        <paper-item car-id$="[[c.Id]]" on-tap="_tapped">
+                            <paper-item-body two-line>
+                                <div class="title">[[c.Plate]]</div>
+                                <div class="thin">[[c.Type]]</div>
+                            </paper-item-body>
+                        </paper-item>
+                    </template>
+                </paper-menu>
+            </paper-dropdown-menu>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+            is: "car-selector",
+            behaviors: [
+                OdlBehaviors.OdlSelectorBehavior
+            ],
+            properties: {
+                cars: {
+                    type: Array,
+                    value: []
+                },
+                carsById: {
+                    type: Object,
+                    value: {}
+                },
+                createDisabled: Boolean,
+                selectedCar: {
+                    type: Object,
+                    value: {},
+                    notify:true,
+                    observer:"_selectedChanged"
+                },
+                small:Boolean,
+                observers: [
+                    '_selectedIdChanged(carsById.*)'
+                ]
+            },
+            _smallClass: function(small) {
+                if(small) return "smallMenu";
+                return "";
+            },
+            ready: function() {
+                this.upperItemName="Car";
+                this.lowerItemName="car";
+            },
+            formatAddress: function(a) {
+                return formatAddress(a);
+            },_tapped: function(e) {
+                this.fire("tapped");
+                this.async(function(){
+                    this.$.carSelector.close();
+                });
+            },
+            open: function() {
+                this.$.carSelector.open();
+            }
+
+        });
+    </script>
+
+</dom-module>

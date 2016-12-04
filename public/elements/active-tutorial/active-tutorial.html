@@ -1,0 +1,219 @@
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="tutorial-step.html">
+<dom-module id="active-tutorial">
+    <template>
+        <style include="odl-styles"></style>
+        <content></content>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "active-tutorial",
+            properties: {
+                steps : {type:Array, value:[]},
+                activeStep : {type:Object, value : {}},
+                activeStepIdx : {type:Number, value : -1},
+                lastDoneStep : {type:Number, value:-1},
+                lastMilestone : {type:String, value:"-",
+                    observer: "setActiveStep",notify:true},
+                nextMilestone: {type:String,computed:"_getStepName(steps, nextMilestoneIdx)"},
+                prevMilestone: {type:String,computed:"_getStepName(steps, prevMilestoneIdx)"},
+                disabled : {type:Boolean, value:false,
+                    observer: "setActiveStep",notify:true},
+                initRunning : Boolean,
+                setActiveRunning : Boolean,
+                disableText:{type:String, value:"x",
+                    observer: "initSteps"},
+                lastMilestoneIdx: {type:Number, computed: "_getStepIdx(steps, lastMilestone)"},
+                nextMilestoneIdx : {type:Number,computed:"_getNextMilestoneIdx(steps, lastMilestoneIdx)"},
+                prevMilestoneIdx : {type:Number,computed:"_getPrevMilestoneIdx(steps, lastMilestoneIdx)"},
+                _observer:Object
+
+            },
+            attached : function() {
+                this.initSteps();
+                var that = this;
+                this._observer = Polymer.dom(this).observeNodes(function(info) {
+                    that.initSteps();
+                });
+            },
+            initSteps:function(finishFunc) {
+                // debounce
+                if(!this.initRunning) {
+                    this.initRunning = true;
+                    this.async(function () {
+                        var effectiveChildren = this.queryAllEffectiveChildren("tutorial-step");
+                        this.set("steps",effectiveChildren);
+                        var nextMsIdx = this.nextMilestoneIdx==-1?99999:this.nextMilestoneIdx;
+                        this.activeStepIdx = -1;
+                        var that = this;
+                        $.each(effectiveChildren, function (i, v) {
+                            v.disableText = that.disableText;
+                            if(that.disabled) {
+                                v.visible = false;
+                                return;
+                            }
+                            v.stepIdx = i;
+                            if(!v.initialised) {
+                                v.initialised = true;
+                                v.addEventListener("activate", function (e) {
+                                    that._onActivate(e);
+                                });
+                                v.addEventListener("forward", function (e) {
+                                    that._forward(e);
+                                });
+                                v.addEventListener("back", function (e) {
+                                    that._back(e);
+                                });
+                                v.addEventListener("deactivate", function (e) {
+                                    that._onDeactivate(e);
+                                });
+                                v.addEventListener("disable-tutorial", function (e) {
+                                    that.disableTutorial(e);
+                                });
+                            }
+                            if (i > 0) {
+                                v.previousStep = effectiveChildren[i - 1];
+                            }
+                            if (i < effectiveChildren.length - 1) {
+                                v.nextStep = effectiveChildren[i + 1];
+                            }
+                        });
+                        var finiFunc = function(){
+                            if(finishFunc && typeof(finishFunc)=="function") {
+                                finishFunc.call(that);
+                            }
+                        };
+                        that.initRunning = false;
+                        that.setActiveStep(finiFunc);
+
+                    },200);
+
+                }
+            },
+            setActiveStep: function(finishFunc) {
+                // debounce
+                if(!this.setActiveRunning && !this.initRunning) {
+                    this.setActiveRunning = true;
+                    this.activeStepIdx = -1;
+                    var newStepIdx = -1;
+                    this.async(function () {
+                        var that = this;
+                        $.each(this.steps, function (i, v) {
+                            if(that.disabled) {
+                                v.visible = false;
+                                return;
+                            }
+                            if (v.active && that.activeStepIdx == -1 && (that.lastMilestoneIdx < i || that.lastMilestoneIdx<1) && i<=that.nextMilestoneIdx) {
+                                newStepIdx = i;
+                            } else
+                            {
+                                v.visible = false;
+                            }
+                        });
+
+                        this.activeStepIdx = newStepIdx;
+                        if(newStepIdx>-1) {
+                            var v = this.steps[newStepIdx];
+                            v.nextDisabled = this.nextMilestoneIdx == 99999;
+                            v.prevDisabled = this.prevMilestoneIdx == -1;
+                            v.visible = true;
+                        }
+                        if(finishFunc && typeof(finishFunc)=="function") {
+                            finishFunc.call(this);
+                        }
+                        this.setActiveRunning = false;
+                    },200);
+                }
+            },
+            _onActivate: function(e) {
+
+                this.setActiveStep();
+            },
+            disableTutorial:function(e) {
+                this.disabled=true;
+                this.fire("disabled");
+            },
+            enableTutorial:function(e) {
+                this.disabled=false;
+                this.fire("enabled");
+            },
+            _forward : function(e) {
+                if(this.nextMilestoneIdx!==-1) {
+                    this.lastMilestone=this.nextMilestone;
+                    this.setActiveStep();
+                }
+            },
+            _getNextMilestoneIdx: function(steps,lastMilestoneIdx) {
+                var nextMilestone = 99999;
+                if(steps)
+                    $.each(steps,function(i,v){
+                        if(v.isMilestone && i>lastMilestoneIdx) {
+                            nextMilestone = i;
+                            return false;
+                        }
+                    });
+                return nextMilestone;
+            },
+            _getPrevMilestoneIdx: function(steps,lastMilestoneIdx) {
+                var prevMilestone = -1;
+                if(steps)
+                    $.each(steps,function(i,v){
+                        if(v.isMilestone && i<lastMilestoneIdx) {
+                            prevMilestone = i;
+                        } else if (i>=lastMilestoneIdx) {
+                            return false;
+                        }
+                    });
+                if (prevMilestone==-1 && lastMilestoneIdx>0) prevMilestone=0;
+                return prevMilestone;
+            },
+            _getStepName: function(steps, stepIdx) {
+                if(steps){
+                    var step = steps[stepIdx];
+                    if(step) {
+                        return steps[stepIdx].id;
+                    }
+                }
+                return "-";
+            },
+            _getStepIdx: function(steps,stepName) {
+                var idx = -1;
+                if(stepName!="-" && stepName!="" && steps) {
+                    $.each(steps, function (i, v) {
+                        if(v.id==stepName) {
+                            idx = i;
+                            return false;
+                        }
+                    });
+                }
+                return idx;
+            },
+            _back : function(e) {
+                if(this.prevMilestoneIdx!==-1) {
+                    this.lastDoneStep = 0;
+                    this.lastMilestone = this.prevMilestone;
+                    this.setActiveStep();
+                }
+
+            },
+            _onDeactivate : function(e) {
+                this.async(function(){
+                    var step = this.steps[e.detail.stepIdx];
+                    if(step.postCondition && step.stepIdx<=this.nextMilestoneIdx) {
+                        step.done = true;
+                        if(this.lastDoneStep<step.stepIdx) {
+                            this.lastDoneStep = step.stepIdx;
+                            if (step.isMilestone) {
+                                this.lastMilestone = step.id;
+                                this.lastMilestoneIdx = step.stepIdx;
+                            }
+                        }
+                    }
+                    this.setActiveStep();
+                });
+            }
+        });
+    </script>
+</dom-module>

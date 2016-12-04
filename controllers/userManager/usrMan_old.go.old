@@ -1,0 +1,103 @@
+//PP 2016-02 reason for this file? PLS delete if not required @CS
+package controllers
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"html/template"
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/Compufreak345/dbg"
+	"github.com/OpenDriversLog/goodl/utils/userManager"
+	"github.com/OpenDriversLog/webfw"
+	. "github.com/OpenDriversLog/goodl-lib/translate"
+	"golang.org/x/net/context"
+)
+
+type UsrManController struct {
+}
+
+const TAG = dbg.Tag("goodl/usrManPage.go")
+
+func (UsrManController) GetViewData(ctx context.Context, r *http.Request) (vd webfw.ViewData, viewPath string, vShared string, err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			vd, viewPath, vShared, err = webfw.RecoverForTag(TAG, "GetViewData", r, errors.New(fmt.Sprintf("%s", err)), true)
+		}
+	}()
+	usr, _, _ := userManager.GetUserWithSession(r)
+	if usr == nil || !usr.IsLoggedIn() {
+		return webfw.GetErrorViewData(TAG, 500, dbg.WTF(TAG, "This is impossible. How did I get to invite without logging in?"), "", nil, false)
+	}
+	if usr.Level() != 1337 {
+		return webfw.GetErrorViewData(TAG, 403, dbg.W(TAG, "User with id "+strconv.FormatInt(usr.Id(), 10)+" tried to open UserManager without permission..."), "", nil, false)
+	}
+	T := ctx.Value("T").(*Translater)
+	dbg.D(TAG, "I'm at UsrManController")
+	vd = webfw.ViewData{
+		T:    T,
+		Data: make(map[string]interface{}),
+	}
+	usrs, err := userManager.GetAllUsers()
+	if err != nil {
+		dbg.E(TAG, "Error while getting users", err)
+		vd.ErrorType = 500
+		return
+	}
+	marshaled, err := json.Marshal(usrs)
+
+	if err != nil {
+		dbg.E(TAG, "Error while marshaling JSON", err)
+		vd.ErrorType = 500
+		return
+	}
+	vd.Data["UserStats"] = "Count of users: " + strconv.Itoa(len(usrs))
+	vd.Data["UsersJSON"] = template.JS(marshaled)
+	if r.FormValue("ajax") == "" {
+		vShared = "layout.html"
+		viewPath = "views/userManager.htm"
+		return
+	} else {
+		viewPath = "views/showDataMessage.htm"
+		if r.FormValue("isUpdate") == "1" {
+			var oldUsr *userManager.OdlUser
+			var uId int64
+			uId, err = strconv.ParseInt(r.FormValue("uid"), 10, 64)
+			if err != nil {
+				dbg.E(TAG, "Error on critical user update get userid: ", err)
+				vd.Data["Message"] = "Error!"
+				return
+			}
+			oldUsr, err = userManager.GetUserById(uId)
+			newUsr := &userManager.OdlUser{}
+			newUsr.SetId(oldUsr.Id())
+			err = userManager.FillUserDataFromFormRequest(r, newUsr, "admin")
+			if err != nil {
+				dbg.E(TAG, "Error on critical user update fill form data: ", err)
+				vd.Data["Message"] = "Error!"
+				return
+			}
+
+			err, _, _, _ = userManager.UpdateUser(oldUsr, newUsr, r, T, "admin", true)
+			if err != nil {
+				if strings.Contains(err.Error(), "UNIQUE constraint") {
+					vd.Data["Message"] = T.T("User already exists")
+					err = nil
+					return
+				}
+				dbg.E(TAG, "Error on critical user update execute: ", err)
+				vd.Data["Message"] = "Error!"
+				return
+			}
+
+			vd.Data["Message"] = "Success"
+			return
+		}
+		vd.Data["Message"] = template.HTML(marshaled)
+		return
+	}
+	return
+}

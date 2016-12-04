@@ -1,0 +1,68 @@
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../behaviors/odl-selectorbehavior.html">
+<dom-module id="driver-selector">
+    <template>
+        <style include="odl-styles">
+            :host([invalid]) paper-dropdown-menu {
+                border: dotted red;
+            }
+        </style>
+        <paper-dropdown-menu id="driverSelector"
+                             label="[[label]]" always-float-label disabled="[[disabled]]"
+        >
+            <paper-menu attr-for-selected="driver-id"
+                        selected="{{selectedId}}" id="innerMenu" class="dropdown-content">
+                <paper-item driver-id="0" on-tap="_createNew">
+                    <paper-item-body>
+                        <div>Neuen Fahrer anlegen</div>
+                    </paper-item-body>
+                </paper-item>
+                <template is="dom-repeat" items="[[drivers]]" as="d">
+                    <paper-item driver-id$="[[d.Id]]">
+                        <paper-item-body>
+                            <div>[[d.Name]]</div>
+                        </paper-item-body>
+                    </paper-item>
+                </template>
+            </paper-menu>
+        </paper-dropdown-menu>
+    </template>
+
+    <script>
+        Polymer({
+            is: "driver-selector",
+            behaviors: [
+                OdlBehaviors.OdlSelectorBehavior
+            ],
+            properties: {
+                label: String,
+                drivers: {
+                    type: Array,
+                    value: []
+                },
+                driversById: {
+                    type: Object,
+                    value: {}
+                },
+
+                selectedDriver: {
+                    type: Object,
+                    value: {},
+                    notify:true,
+                    observer:"_selectedChanged"
+                },
+                disabled: Boolean,
+                observers: [
+                    '_selectedIdChanged(driversById.*)'
+                ]
+            },
+            ready: function() {
+                this.upperItemName="Driver";
+                this.lowerItemName="driver";
+            }
+        });
+    </script>
+
+</dom-module>

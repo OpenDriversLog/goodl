@@ -1,0 +1,31 @@
+FROM golang:1.7
+
+RUN apt-get update && apt-get install -y \
+        ca-certificates \
+        git-core \
+        ssh \
+        && rm -rf /var/lib/apt/lists/*
+
+ENV HTTP_PORT 4000
+ENV ENVIRONMENT production
+ENV LOG_FILE /var/log/goodl/production.log
+
+COPY DONTADDTOGIT/ DONTADDTOGIT/
+
+RUN mkdir -p /opt/setup/
+COPY scripts/init.prod /opt/setup/init
+RUN chmod 700 /opt/setup/init
+
+COPY . $GOPATH/src/github.com/OpenDriversLog/goodl
+
+WORKDIR $GOPATH/src/github.com/OpenDriversLog/goodl
+
+# when pushing to master, all other deps should be updated in Godeps folder
+# therefore, we dont need to clone any other things
+RUN cp -rf ./Godeps/_workspace/src/ $GOPATH
+
+EXPOSE $HTTP_PORT
+
+VOLUME /var/log/goodl
+
+CMD ["/opt/setup/init"]

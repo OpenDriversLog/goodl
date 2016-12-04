@@ -1,0 +1,40 @@
+selhub:
+  image: selenium/hub:latest
+  ports:
+    - 4444:4444
+
+nodeff:
+  image: selenium/node-firefox:latest
+  ports:
+    - 5900
+  links:
+    - selhub:hub
+
+nodechrome:
+  image: selenium/node-chrome:latest
+  ports:
+    - 5900
+  links:
+    - selhub:hub
+  volumes:
+    - /dev/shm:/dev/shm
+
+goodlserver:
+  image: odl_go/goodl-dev
+  links:
+    - selhub:selhub
+  external_links:
+    - goodl_redis:redis
+  environment:
+    - ENVIRONMENT=test
+    - SMTP_HOST=mail.opendriverslog.de
+    - SMTP_PORT=587
+  command: go run -installsuffix _testing /go/src/github.com/OpenDriversLog/goodl/goodl.go
+  volumes:
+    - ../tests/acceptance:/databases
+    - ../:/go/src/github.com/OpenDriversLog/goodl
+    - ../../webfw:/go/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog/webfw:ro
+    - ../../goodl-lib:/go/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog/goodl-lib:ro
+    - ../../redistore:/go/src/github.com/OpenDriversLog/goodl/vendor/github.com/OpenDriversLog/redistore:ro
+  ports:
+    - 4004:4000

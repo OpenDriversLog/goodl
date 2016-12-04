@@ -1,0 +1,183 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+
+<link rel="import" href="../behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="address-edit.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<dom-module id="contact-edit">
+    <template>
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+
+        <iron-ajax id="ajaxContactDeleter"
+                   url="../../../adrMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxContactCreator"
+                   url="../../../adrMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxContactUpdater"
+                   url="../../../adrMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+        <div class="vertical layout fit">
+            <paper-toolbar>
+                <paper-icon-button id="contactCard_back" enabled="{{!loading}}" icon="arrow-back" title="zurück zur Kontaktliste" on-tap="back">
+                </paper-icon-button>
+                <div class="title">Kontakt bearbeiten</div>
+                <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                <paper-icon-button id="cancelButton" enabled="{{!loading}}" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen"></paper-icon-button>
+                <paper-icon-button id="saveButton" enabled="{{!loading}}" icon="icons:save" on-tap="_saveEdit" title="Speichern"></paper-icon-button>
+            </paper-toolbar>
+
+            <paper-material id="contactEdit" class="edit_padding">
+                <div style="overflow:auto;">
+                    <form is="iron-form" id="formEditContact" method="POST">
+                        <paper-input id="contact_edit_title" name="title" required label="Name" type="text" value="{{internalContact.Title}}"></paper-input>
+                        <div>
+                            <paper-input id="contact_edit_description" name="description" label="Beschreibung" value="{{internalContact.Description}}"></paper-input>
+                        </div>
+                        <!-- <div>
+                        <iron-icon icon="notification:event-note"></iron-icon>
+                        <paper-input id="contact_edit_additional" name="additional" label="weitere Notiz" type="text" value="{{internalContact.Additional}}"></paper-input>
+                        </div> -->
+                        <div class="input-field contactTripType">
+                            <paper-radio-group id="contact_edit_triptype" name="TripType" required selected="{{internalContact.TripType}}" style="padding:5px;">
+                                <paper-radio-button name="1" style="padding:5px;">Privat</paper-radio-button>
+                                <paper-radio-button id="workRadio" name="2" style="padding:5px;">Arbeitsweg</paper-radio-button>
+                                <paper-radio-button name="3" style="padding:5px;">Dienstlich</paper-radio-button>
+                                <paper-radio-button id="homeRadio" name="4" style="padding:5px;">Wohnort</paper-radio-button>
+                            </paper-radio-group>
+                        </div>
+                        <paper-material>
+                            <address-edit class$="[[ifTrue(isMobile,'mobile','desktop')]]" hide-old-contacts="[[hideOldContacts]]" on-contact-copy="_copyContact" contacts="{{contacts}}" contacts-by-id="{{contactsById}}" id="adrEdit" address="{{internalContact.Address}}"></address-edit>
+                        </paper-material>
+                    </form>
+                </div>
+            </paper-material>
+        </div>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "contact-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+
+            properties: {
+                contact: {
+                    type: Object,
+                    notify: true,
+                    value: {},
+                    observer: "_contactChanged"
+                },
+                internalContact: {
+                    type: Object,
+                    notify:true,
+                    value: {}
+                },
+                contacts: {
+                    type:Array,
+                    value:[]
+                },
+                contactsById: {
+                    type:Object,
+                    value:{}
+                },
+                hideOldContacts: Boolean
+            },
+
+            getNew: function() {
+                return {
+                    "Id": -1,
+                    "Title" : "",
+                    "Description" : "",
+                    "Additional" : "",
+                    "TripType": 1,
+                    "Type" : 1,
+                    "Address":this.$.adrEdit.getNewAddress()
+                };
+            },
+            _contactChanged: function(newVal,old) {
+                this.set("contact.highlighted",true);
+                this._dtoChanged(newVal,old);
+
+            },
+            _saveEdit:function(e) {
+                this.loading = true;
+                if(this.internalContact.Address.City != this.contact.Address.City || this.internalContact.Address.Street != this.contact.Address.Street || this.internalContact.Address.HouseNumber != this.contact.Address.HouseNumber || this.internalContact.Address.Postal != this.contact.Address.Postal) {
+                    var that = this;
+                    this.$.adrEdit.updateLatLng(function(){
+                        that.saveEdit(e);
+                    });
+                } else {
+                    this.saveEdit(e);
+                }
+
+            },
+            getItemDesc: function(contact) {
+                s = "Kontakt " + this.getValString(contact.Title);
+                if(contact.Address) {
+                    s += " (" + getAddressHTML(contact.Address,true,true) +")"
+                }
+                return s;
+            },
+            ready: function() {
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "contact";
+                this.upperDtoName = "Contact";
+                this.ajaxDeleter = this.$.ajaxContactDeleter;
+                this.ajaxCreator = this.$.ajaxContactCreator;
+                this.ajaxUpdater = this.$.ajaxContactUpdater;
+            },
+
+            polish: function(contact) {
+                if(contact.Type)
+                    contact.Type = Number(contact.Type);
+                if(contact.TripType)
+                    contact.TripType = Number(contact.TripType);
+                if(contact.Disabled>0) {
+                    contact.Disabled = 1;
+                } else {
+                    contact.Disabled = 0;
+                }
+                delete contact.highlighted;
+                return contact;
+            },
+            _copyContact : function(e) {
+                if(e.detail && e.detail.Title && !this.internalContact.Title) {
+                    this.set("internalContact.Title",e.detail.Title);
+                }
+            }
+        });
+    </script>
+</dom-module>

@@ -1,0 +1,129 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="driver-edit.html">
+<link rel="import" href="../behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<dom-module id="beta-user-edit">
+
+
+    <template>
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+        <iron-ajax id="ajaxBetaUserDeleter"
+                   url="../../../betaMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+        <iron-ajax id="ajaxBetaUserCreator"
+                   url="../../../betaMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+        <iron-ajax id="ajaxBetaUserUpdater"
+                   url="../../../betaMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+
+        <paper-toolbar>
+            <paper-icon-button id="betaUserEdit_back" icon="arrow-back" title="zurück zur BetaUserliste" on-tap="back">
+            </paper-icon-button>
+            <div class="title">BetaUser bearbeiten</div>
+            <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+            <paper-icon-button id="cancelButton" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+            <paper-icon-button id="saveButton" icon="icons:save" on-tap="saveEdit" title="Speichern" disabled="[[saveDisabled]]"></paper-icon-button>
+        </paper-toolbar>
+
+        <paper-material id="betaUserEdit">
+            <form is="iron-form" id="formEditBetaUser" method="POST">
+                <paper-input label="Vorname" type="text" value="{{internalBetaUser.Vorname}}"></paper-input>
+                <paper-input required label="Nachname" type="text" value="{{internalBetaUser.Name}}"></paper-input>
+                <paper-input required label="Email" type="text" value="{{internalBetaUser.Email}}"></paper-input>
+                <select id="Anrede" label="Anrede" type="text" value="{{internalBetaUser.Anrede}}">
+                    <option value="Sehr geehrte(r) Frau/Herr">Sehr geehrte(r) Frau/Herr</option>
+                    <option value="Sehr geehrter Herr">Sehr geehrter Herr</option>
+                    <option value="Sehr geehrte Frau">Sehr geehrte Frau</option></select>
+                <paper-checkbox checked="{{internalBetaUser.Wants2BePilot}}">Pilot</paper-checkbox>
+                <paper-checkbox checked="{{internalBetaUser.WantsNewsletter}}">Newsletter</paper-checkbox>
+
+            </form>
+        </paper-material>
+
+    </template>
+    <script>
+
+        Polymer({
+            is: "beta-user-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+            properties: {
+                betaUser: {
+                    type: Object,
+                    notify: true,
+                    observer:'_dtoChanged'
+                },
+                internalBetaUser: {
+                    type: Object,
+                    notify:true
+                }
+            },
+            getItemDesc: function(betaUser) {
+                return "BetaUser " + this.getValString(betaUser.Anrede) +" "+ this.getValString(betaUser.Vorname) + " " + this.getValString(betaUser.Name)+ "("+this.getValString(betaUser.Email)+")";
+            },
+            getNew: function() {
+                return {
+                    "Id": -1,
+                    "Name": "",
+                    "Vorname": "",
+                    "Email": "",
+                    "Wants2BePilot" : 0,
+                    "WantsNewsletter": 0,
+                    "Anrede": "Sehr geehrte(r) Frau/Herr"
+                };
+            },
+            polish: function(data) {
+                data.Wants2BePilot = data.Wants2BePilot?1:-1;
+                data.WantsNewsletter = data.WantsNewsletter?1:-1;
+                data.Anrede = this.$.Anrede.value;
+                delete(data["highlighted"]);
+                return data;
+            },
+            ready: function() {
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "betaUser";
+                this.upperDtoName = "BetaUser";
+                this.ajaxDeleter = this.$.ajaxBetaUserDeleter;
+                this.ajaxCreator = this.$.ajaxBetaUserCreator;
+                this.ajaxUpdater = this.$.ajaxBetaUserUpdater;
+            }
+
+        });
+    </script>
+</dom-module>

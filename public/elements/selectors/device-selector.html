@@ -1,0 +1,67 @@
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../behaviors/odl-selectorbehavior.html">
+<dom-module id="device-selector">
+    <template>
+        <style include="odl-styles">
+            :host([invalid]) paper-dropdown-menu {
+                border: dotted red;
+            }
+        </style>
+        <paper-dropdown-menu id="deviceSelector"
+                             label="[[label]]" always-float-label
+        >
+            <paper-menu attr-for-selected="device-id"
+                        selected="{{selectedId}}" id="innerMenu" class="dropdown-content">
+                <paper-item device-id="0" on-tap="_createNew">
+                    <paper-item-body>
+                        <div>Neues Gerät anlegen</div>
+                    </paper-item-body>
+                </paper-item>
+                <template is="dom-repeat" items="[[devices]]" as="d">
+                    <paper-item device-id$="[[d.Id]]">
+                        <paper-item-body>
+                            <div>[[d.Description]]</div>
+                        </paper-item-body>
+                    </paper-item>
+                </template>
+            </paper-menu>
+        </paper-dropdown-menu>
+    </template>
+
+    <script>
+        Polymer({
+            is: "device-selector",
+            behaviors: [
+                OdlBehaviors.OdlSelectorBehavior
+            ],
+            properties: {
+                label: String,
+                devices: {
+                    type: Array,
+                    value: []
+                },
+                devicesById: {
+                    type: Object,
+                    value: {}
+                },
+
+                selectedDevice: {
+                    type: Object,
+                    value: {},
+                    notify:true,
+                    observer:"_selectedChanged"
+                },
+                observers: [
+                    '_selectedIdChanged(devicesById.*)'
+                ]
+            },
+            ready: function() {
+                this.upperItemName="Device";
+                this.lowerItemName="device";
+            }
+        });
+    </script>
+
+</dom-module>

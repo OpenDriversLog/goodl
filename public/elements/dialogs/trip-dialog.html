@@ -1,0 +1,87 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-overlay-behavior/iron-overlay-behavior.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-card/paper-card.html">
+
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../odl/odl-theme.html">
+<dom-module id="trip-dialog">
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            :host {
+                background: white;
+                color: black;
+                padding: 24px;
+                box-shadow: rgba(0, 0, 0, 0.24) -2.3408942051048403px 5.524510324047423px 12.090680100755666px 0px, rgba(0,
+                0, 0, 0.12) 0px 0px 12px 0px;
+                width:70%;
+            }
+            .avatar {
+                display: inline-block;
+                height: 64px;
+                width: 64px;
+            }
+        </style>
+
+
+        <paper-icon-button id="closeHelpButton" class="right" icon="icons:close" on-tap="toggle" style="float:right;">x
+        </paper-icon-button>
+        <div>
+            <div class="avatar" style="float:left;">
+                <img src="[[face]]" alt="" class="circle" style="width:100%;">
+            </div>
+            <div style="padding-left:72px;">
+                <p>
+                    <span>[[title]]</span><br/>
+                    <content> Dieser Hilfetext könnte nützlich sein.</content>
+                </p>
+            </div>
+        </div>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "trip-dialog",
+            properties:
+            {
+                title:
+                {
+                    type: String,
+                    value: "Hallo!"
+                },
+                face:
+                {
+                    type: String,
+                    value:function() {
+                        var f = "./public/img/";
+                        var r = Math.random();
+                        if(r<0.33333) {
+                            f += "falk";
+                        } else if (r < 0.66666) {
+                            f += "paul";
+                        } else {
+                            f += "christoph";
+                        }
+                        f += ".jpg";
+                        return f;
+                    },
+                    reflectToAttribute: true
+                },
+                toggle: function() {
+                    this.$.overlay.toggle();
+                }
+            },
+            behaviors: [
+                Polymer.IronOverlayBehavior
+            ]
+        });
+
+
+
+
+    </script>
+
+</dom-module>

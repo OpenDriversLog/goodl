@@ -1,0 +1,39 @@
+
+<dom-module id="list-styles">
+    <template>
+        <style include="iron-flex">
+            .searchBadge {
+                --paper-badge-background: #0277bd;
+                --paper-badge-margin-left: -20px;
+                --paper-badge-margin-bottom: -10px; /* somehow not working */
+            }
+            paper-material {
+                width: 99%;
+            }
+            .hidden {
+                display:none;
+            }
+            .list-item {
+                height: 74px;
+            }
+            .highlighted {
+                background-color:#0277bd;
+            }
+            :host.mobile paper-toolbar.title {
+                display:none;
+            }
+            #toggleDrawer {
+                display:none;
+            }
+            :host.mobile #toggleDrawer {
+                display:flex;
+            }
+            :host.mobile paper-icon-button{
+                border-radius: 36px;
+                padding: 2px;
+            }
+
+
+        </style>
+    </template>
+</dom-module>

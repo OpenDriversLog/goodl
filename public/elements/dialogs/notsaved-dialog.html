@@ -1,0 +1,77 @@
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../odl/odl-theme.html">
+<dom-module id="notsaved-dialog">
+
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            #notsavedDialog {
+                z-index:9999999999;
+                display:block;
+                right:auto;
+                left:auto;
+            }
+        </style>
+        <paper-dialog id="notsavedDialog" modal>
+            <p>Es befinden sich ungespeicherte Änderungen auf der Seite <span>{{itemDesc}}</span>.</p>
+            <div class="buttons">
+                <paper-button on-tap="dontSave">Ohne Speichern fortfahren</paper-button>
+                <paper-button on-tap="stay">Auf der Seite bleiben</paper-button>
+                <paper-button on-tap="save">Speichern und fortfahren</paper-button>
+            </div>
+        </paper-dialog>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "notsaved-dialog",
+            properties: {
+                itemDesc: {
+                    type:String,
+                    value : "Unbekannt",
+                },
+                dontSaveFunc : {
+                    type: Object,
+                    value: null
+                },
+                stayFunc : {
+                    type: Object,
+                    value: null
+                },
+                saveFunc : {
+                    type: Object,
+                    value: null
+                }
+            },
+            dontSave: function() {
+                this.$.notsavedDialog.close();
+                if(this.dontSaveFunc) {
+                    this.dontSaveFunc();
+                }
+                this.fire('dontSave');
+            },
+            stay: function() {
+                this.$.notsavedDialog.close();
+                if(this.stayFunc) {
+                    this.stayFunc();
+                }
+                this.fire('stay');
+            },
+            save: function() {
+
+                if(this.saveFunc) {
+                    this.saveFunc();
+                }
+                this.$.notsavedDialog.close();
+                this.fire('save');
+            },
+            show: function() {
+                this.$.notsavedDialog.open();
+            }
+        });
+    </script>
+
+</dom-module>
+

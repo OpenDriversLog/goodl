@@ -1,0 +1,13 @@
+{
+  "accountData":"Persönliche Daten",
+  "otherSettings":"Weitere Einstellungen",
+  "otherSettingsText":"Wir arbeiten an verschiedenen Stellen dieser Applikation, deswegen sind einige Bereiche noch nicht ganz fertig. Hier sehen Sie aber bereits, wie wir uns zweistufige Menüs vorstellen.",
+  "editUserMessage":"Hier können Sie Ihre persönlichen Daten ändern. Bitte achten Sie auf korrekte Eingaben, besonders bei der E-Mail-Adresse. Bei jeder Änderung von Daten wird eine Hinweis-E-Mail an Ihre E-Mail-Adresse gesendet.",
+  "settingsChanged":"Ihre Einstellungen wurden erfolgreich geändert.",
+  "settings_success":"Ihre Einstellungen wurden erfolgreich geändert.",
+  "NoChangesFound":"Keine geänderten Eingaben gefunden.",
+  "helpText_settings":"Hier können Sie Ihre persönlichen Daten ändern. Sie erhalten über jede Änderung nach Betätigung des 'Speichern'-Knopfes eine E-Mail.",
+  "change_userData":"Nutzerdaten bearbeiten",
+  "finishedTutorial":"Tutorial abgeschlossen",
+  "notificationsEnabled":"E-Mail-Erinnerungen"
+}

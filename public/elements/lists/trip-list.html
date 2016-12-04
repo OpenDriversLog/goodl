@@ -1,0 +1,1606 @@
+<link rel="import" href="../../components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-flex-layout/iron-flex-layout.html">
+
+<link rel="import" href="../../components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<link rel="import" href="../../components/iron-icons/image-icons.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+
+<link rel="import" href="../../components/paper-badge/paper-badge.html">
+
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../../components/neon-animation/neon-animation-runner-behavior.html">
+
+<link rel="import" href="../edits/trip-edit.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../selectors/contact-selector.html">
+
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../controls/trip-type.html">
+<link rel="import" href="../controls/lazy-element.html">
+
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+<link rel="import" href="../controls/device-time-dropdown.html">
+
+<script type="text/javascript" src="../../js/date_extensions.js"></script>
+
+<dom-module id="trip-list">
+
+    <template>
+        <carbon-route id="tripsRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+        <trips-export loading="{{exportLoading}}" id="odl_export"></trips-export>
+        <style include="list-styles odl-styles iron-flex iron-flex-alignment iron-positioning iron-flex-factors">
+
+
+            .list-item {
+                height: 100px;
+                padding-left:2px;
+            }
+            :host.mobile .list-item .type-select {
+                display:none;
+            }
+            :host.mobile .list-item .mergeButton {
+                display:none;
+            }
+            .addrTip {
+                display:none;
+            }
+            :host.mobile .list-item .addrTip{
+                display:inline;
+            }
+            :host.mobile .list-item .contactDropdown {
+                display:none;
+            }
+            .leftTripDing {
+                height:97px;
+            }
+            :host.mobile .list-item .leftTripDing {
+                height:147px;
+            }
+
+            .needsReview {
+                background-color : #ffcdd2
+            }
+            .Reviewed {
+                background-color : #dcedc8
+            }
+
+            .small-paper-icon-button {
+                --iron-icon-height: 24px;
+                --iron-icon-width: 24px;
+                height: 24px;
+                width: 24px;
+                padding-top: 0px;
+                padding-bottom: 0px;
+                padding-left: 5px;
+                padding-right: 0px;
+            }
+            .hidden {
+                display:none;
+            }
+            .selected {
+                background-color: #B3E5FC;
+            }
+            paper-icon-item {
+                --paper-item-focused: {
+                    background-color: white;
+                };
+
+                --paper-item-selected: {
+                    background-color: white;
+                };
+                --paper-item-focused-before: {
+                    background-color: white;
+                }
+
+            }
+            .dropdown-activator {
+                color:#bdbdbd;
+            }
+            paper-input.tripTitleInput {
+                height:22px;
+                --paper-input-container: {
+                    height:22px;
+                    padding:0 10px 0 2px;
+                };
+            }
+            .type-select {
+                height:22px;
+            }
+            .type-select > paper-radio-group {
+                padding:0;
+                height:22px;
+            }
+            .type-select > paper-radio-group > paper-radio-button {
+                padding:0 10px 0 2px;
+                height:22px;
+            }
+            .backWayCB {
+                padding : 3px 3px 0 2px;
+            }
+
+            .list-icon > paper-item {
+                padding: 3px 0 3px 0;
+                height:22px;
+            }
+
+            .phoneIcon {
+                padding: 0.5em;
+                margin-bottom:-10px;
+                margin-top:-5px;
+                margin-left:5px;
+                height:15px;
+            }
+
+            :host.mobile .phoneIcon {
+                padding: 0.5em;
+                margin-bottom:5px;
+                margin-top:5px;
+                margin-left:5px;
+                height:25px;
+            }
+
+            .list-icon {
+                width:55px;
+            }
+
+            .mergeButton {
+                padding-top:0;
+                padding-bottom:0;
+                height:26px;
+            }
+
+            .timeLeft {
+                font-size:0.75em;
+            }
+            .timePicker {
+                display:none;
+            }
+            :host.mobile .timePicker {
+                display:flex;
+            }
+            .tripDivMobile {
+                font-size:16px;
+                width:173px;
+                height:148px;
+                padding:5px;
+                border-radius:7px;
+            }
+
+            .tripMobileOuterDiv {
+                width:178px;
+                height:153px;
+            }
+            .tripDivMobile.workway{
+                background-color:#B3E5FC;
+            }
+            .tripDivMobile.private{
+                background-color:#C8E6C9;
+            }
+            .tripDivMobile.business{
+                background-color:#FFECB3;
+            }
+            .gridDivider {
+                height:40px;width:100%;
+            }
+
+            :host.mobile .tripDivMobile.selected.private {
+                background-color: #81C784
+            }
+            :host.mobile .tripDivMobile.selected.business {
+                background-color: #FFC107
+            }
+            :host.mobile paper-toolbar .searchBar {
+                display:none;
+            }
+            :host.mobile .tripDivMobile.selected.workway {
+                background-color: #4FC3F7
+            }
+            .gridWithHeading {
+
+            }
+            .gridWithoutHeading {
+
+            }
+            .tripDivMobile .mobileTitle {
+                height:40px;
+            }
+
+            .tripDivMobile.needsReview {
+                border: solid 2px #ff6f00;
+            }
+            .tripDivMobile.Reviewed {
+                border: solid 2px #2e7d32;
+            }
+            #tripList .bottomNav {
+                display:none;
+            }
+            :host.mobile #tripList .bottomNav {
+                height:50px;
+                width:100%;
+                background-color:var(--dark-primary-color);
+                display:inline;
+            }
+
+
+        </style>
+
+        <iron-ajax id="ajaxTripFetcher"
+                   url="../../../trips"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "read", "t": "trips","minTime":1,"maxTime":1 }'
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+
+                   loading="{{ajaxLoading}}"></iron-ajax>
+
+        <neon-animated-pages on-neon-animation-finish="_onPageChange" id="trip_pages" class="fit"
+                             on-neon-animation-finish="_onPageChange" class="fit"
+                             selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+                             selected-item="{{selectedPage}}"
+                             entry-animation="fade-in-animation"
+                             exit-animation="fade-out-animation">
+
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" id="tripList" entry-animation="fade-in-animation"  class="lhm-tab-animation">
+                <div class="vertical layout fit">
+                    <paper-toolbar>
+                        <div class="horizontal layout">
+                            <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                            <div class="timePicker horizontal layout">
+                                <device-time-dropdown class$="[[ifTrue(isMobile,'mobile','desktop')]]" is-mobile min-time="{{minTime}}" max-time="{{maxTime}}" colors="[[colors]]"
+                                                      devices="{{devices}}" devices-by-id="{{devicesById}}"
+                                                      cur-start="{{minTime}}" cur-end="{{maxTime}}"
+                                                      colors-by-id="[[colorsById]]" small>
+                                </device-time-dropdown>
+                                <paper-icon-button icon="file-download" on-tap="_openDownloadSelector"></paper-icon-button>
+                                <car-selector id="downloadSelector" small selected-id="{{selectedCarId}}" cars="{{cars}}" cars-by-id="{{carsById}}" label="{{t.downloadLogbook}}" create-disabled on-tapped="_downloadPdf"></car-selector>
+                                <paper-spinner id="spin" active="{{exportLoading}}" alt="Verarbeite Daten..."></paper-spinner>
+
+                            </div>
+                                <span class="title">Fahrten
+                                 <paper-badge label="{{notReviewedCount}}" class$="{{isZero(notReviewedCount)}}"></paper-badge>
+                                </span>
+                        </div>
+                        <div class="horizontal layout searchBar">
+                            <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                            <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaUserBox"></paper-badge>
+                            <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                            </paper-icon-button>
+                            <paper-icon-button icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                            </paper-icon-button>
+                        </div>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <span class="flex"></span>
+                        <paper-icon-button on-tap="checkAll" title="Alle angezeigten Fahrten als erledigt markieren"
+                                           icon="done-all"></paper-icon-button>
+                    </paper-toolbar>
+
+                    <paper-material elevation="2" class="vertical layout flex">
+                        <div class="vertical layout fit">
+                            <div class="vertical layout relative flex">
+                                <template is="dom-if" if="[[!isMobile]]">
+                                    <iron-list selected-items="{{selectedItems}}" selection-enabled multi-selection id="tripIronList" items="{{trips}}"
+                                               as="trip" index-as="idx" class="vertical layout fit">
+                                        <template>
+                                            <paper-material id="tripDiv[[trip.Id]]" class$="[[_getGridClass(trips,idx,isMobile,trip.highlighted)]] tripDiv" on-mouseenter='_onHovered' on-mouseleave='_onUnHovered'>
+                                                <paper-icon-item class="list-item" id="item_[[tripew.Id]]" tripid="[[trip.Id]]" tabindex$="[[tabIndex]]" toggles>
+                                                    <div class="vertical layout list-icon" item-icon>
+                                                        <div class$="vertical layout {{_getClass(trip.Reviewed)}} leftTripDing">
+                                            <span>
+                                                <iron-icon icon="hardware:smartphone"
+                                                           class="phoneIcon"
+                                                           style$="color:[[trip.Device.Color.Color2]]">
+                                                </iron-icon>
+                                            <paper-tooltip position="right">
+                                                [[trip.Device.Description]]
+                                            </paper-tooltip>
+                                            </span>
+                                                <span>
+                                                    <paper-icon-button class="mergeButton"
+                                                                       style="margin-left:5px;"
+                                                                       disabled="[[_mergeButtonDisabled(mergeEnabled,selected)]]"
+                                                                       icon="editor:wrap-text" on-tap="_mergeSelected">
+                                                    </paper-icon-button>
+
+                                                    <paper-tooltip position="right">
+                                                        [[getMergeTitle(mergeEnabled,selected,t)]]
+                                                    </paper-tooltip>
+
+                                                </span>
+                                            <span>
+
+                                            <trip-type type="[[trip.Type]]" on-tap="showDetails"
+                                                       class="clickable"
+                                                       style="padding: 0.5em;"></trip-type>
+                                                </span>
+                                                <span class="timeLeft center">
+                                                    [[trip.editableRemaining]]
+                                                </span>
+
+                                                        </div>
+                                                    </div>
+                                                    <paper-item-body class="fill" id="body_[[trip.Id]]">
+                                                        <div class$="fill vertical layout {{_computeClass(selected)}}">
+                                                            <div class="flex vertical layout">
+                                                                <div class="horizontal layout flex" >
+                                                        <span class="flex vertical layout">
+                                                            <span class="flex horizontal layout">
+                                                                [[getStartTime(trip,1)]]&nbsp;
+                                                                <lazy-element class="contactDropdown" enabled="[[_sEnabled]]" disabled="[[_negate(trip.editable)]]">
+                                                                    <span class="horizontal layout dropdown-activator" activator>
+                                                                        <iron-icon icon="arrow-drop-down" style="padding-right:5px;" ></iron-icon>
+                                                                    </span>
+                                                                    <span lazy>
+                                                                            <contact-selector hide-old-contacts="[[hideOldContacts]]" id="startSelector" on-attached="_openStartCSelector" small on-selected-item-changed="_selectedStartContactChanged" create-disabled  selected-contact="{{trip.StartContact}}" disabled="[[_negate(trip.editable)]]"></contact-selector>
+                                                                    </span>
+                                                                </lazy-element>
+
+                                                                <span> [[getStart(trip,1)]]
+                                                                    <paper-tooltip class="addrTooltip">
+                                                                        [[getStartTooltip(trip,1)]]
+                                                                    </paper-tooltip>
+                                                               </span>
+
+                                                                </span>
+                                                            <span class="flex addrTip">
+                                                                        [[getStartTooltip(trip,1)]]
+                                                                    </span>
+                                                            </span>
+
+
+                                                        <span><paper-icon-button trip="[[trip]]"
+                                                                                 class="small-paper-icon-button"
+                                                                                 on-tap="_mergeWithPrev"
+                                                                                 icon="arrow-upward"
+                                                                                 disabled="[[!canMergeWithPrev(idx,trip,trip.editable,trip.highlighted)]]">
+                                                        </paper-icon-button>
+                                                            <paper-tooltip position="left">[[t.mergePrev]]</paper-tooltip>
+                                                        </span>
+
+                                                                </div>
+                                                                <div class="horizontal layout flex">
+                                                        <span class="flex vertical layout">
+                                                         <span class="flex horizontal layout">
+                                                                [[getEndTime(trip,1)]]&nbsp;
+                                                                <lazy-element class="contactDropdown" disabled="[[_negate(trip.editable)]]">
+                                                                    <span class="horizontal layout dropdown-activator" activator>
+                                                                        <iron-icon icon="arrow-drop-down" style="padding-right:5px;"></iron-icon>
+                                                                    </span>
+                                                                    <span lazy>
+                                                                    <contact-selector hide-old-contacts="[[hideOldContacts]]"
+                                                                                      on-attached="_openEndCSelector" small id="endSelector"
+                                                                                      on-selected-item-changed="_selectedEndContactChanged"
+                                                                                      create-disabled  selected-contact="{{trip.EndContact}}"
+                                                                                      disabled="[[_negate(trip.editable)]]"></contact-selector>
+                                                                    </span>
+                                                                </lazy-element>
+                                                                <span>[[getEnd(trip,1)]]
+                                                                    <paper-tooltip class="addrTooltip">
+                                                                        [[getEndTooltip(trip,1)]]
+                                                                    </paper-tooltip></span>
+
+                                                            </span>
+                                                            <span class="flex addrTip">
+                                                                        [[getEndTooltip(trip,1)]]
+                                                                    </span>
+</span>
+                                                        <span><paper-icon-button trip="[[trip]]"
+                                                                                 class="small-paper-icon-button"
+                                                                                 on-tap="_mergeWithNext"
+                                                                                 icon="arrow-downward"
+                                                                                 disabled="[[!canMergeWithNext(idx,trip,trip.editable,trip.highlighted)]]">
+                                                        </paper-icon-button>
+                                                        <paper-tooltip position="left">[[t.mergeNext]]</paper-tooltip>
+                                                        </span>
+
+                                                                </div>
+                                                            </div>
+                                                <span class="thin horizontal layout type-select" style="position: relative">
+                                                    <paper-radio-group  on-tap="_dontPropagate" id="trip_edit_triptype"
+                                                                        on-paper-radio-group-changed="_tripTypeChanged" selected="{{trip.Type}}" disabled="[[_negate(trip.editable)]]">
+                                                        <paper-radio-button name="1" disabled="[[_negate(trip.editable)]]">Privat</paper-radio-button>
+                                                        <paper-radio-button id="radioWorkWay" name="2" disabled="[[_negate(trip.editable)]]">Arbeitsweg</paper-radio-button>
+                                                        <paper-radio-button id="radioBusinessTrip" name="3" disabled="[[_negate(trip.editable)]]">Dienstlich</paper-radio-button>
+                                                    </paper-radio-group>
+                                                                            <paper-checkbox class="backWayCB" on-tap="_dontPropagate" on-change="_returnChanged"
+                                                                                            id="returntrip" checked="{{trip.IsReturnTrip}}" disabled="[[_negate(trip.editable)]]">Rückweg</paper-checkbox>
+                                                    </span>
+                                                            <div class="horizontal layout">
+                                                                <span class="thin flex horizontal layout">[[trip.Distance]] km - <paper-input on-change="_titleChanged" no-label-float  class="tripTitleInput flex" value="{{trip.Title}}" disabled="[[_negate(trip.editable)]]"></paper-input></span>
+                                                    <span class="thin">
+                                                        <span>
+                                                        <paper-icon-button icon="icons:check"
+                                                                           class="small-paper-icon-button"
+                                                                           on-tap="_setReviewed" trip="[[trip]]"
+                                                                           title="Als erledigt markieren." disabled="[[_negate(trip.editable)]]"></paper-icon-button>
+                                                            <paper-tooltip position="left">[[t.setReviewed]]</paper-tooltip>
+                                                        </span>
+                                                        <template is="dom-if" if="{{map.Id}}">
+                                                            <paper-icon-button class="small-paper-icon-button"
+                                                                               icon="room"
+                                                                               title="Auf der Karte zentrieren"></paper-icon-button>
+                                                        </template>
+                                                    </span>
+                                                            </div>
+
+                                                        </div>
+                                                    </paper-item-body>
+                                                </paper-icon-item>
+                                            </paper-material>
+                                        </template>
+                                    </iron-list>
+                                </template>
+                                <template is="dom-if" if="[[isMobile]]">
+                                    <iron-list grid selected-items="{{selectedItems}}" selection-enabled multi-selection id="mobileTripIronList" items="{{trips}}"
+                                               as="trip" index-as="idx" class="vertical layout fit">
+
+                                        <template>
+                                            <div class="tripMobileOuterDiv">
+                                                <paper-material elevation="[[_getElevation(selected)]]" class$="[[_computeClass(selected)]] {{_getClass(trip.Reviewed)}} tripDivMobile [[_getTypeClass(trip.Type)]] fill vertical layout">
+                                                    <!--
+
+                                                     template is="dom-if" if="[[_isNewDay[[trips,idx]]">
+                                                        <div class="gridDivider">
+                                                            New day!
+                                                        </div>
+                                                    </template-->
+                                                    <span class="mobileTitle">[[_getMobileTitle(trip,trip.Title,trip.StartKeyPointId,trip.EndKeyPointId)]]</span>
+                                                    <span>[[getStartTime(trip,1)]]-[[getEndTime(trip,1,1)]]</span>
+                                                    <span>[[cutString(trip.Driver.Name,17,1)]]</span>
+                                                    <span class="flex horizontal layout"><span class="flex vertical layout"><span>0 km</span>
+                                                    <span>[[_getReviewed(trip.Reviewed)]]</span>
+                                                    </span>
+                                                        <paper-icon-button class="mobileEditButton" hidden$="[[!trip.editable]]" mini icon="icons:create" on-tap="showDetails" trip="[[trip]]" title="Bearbeiten"></paper-icon-button>
+
+                                                    </span>
+                                                </paper-material>
+                                            </div>
+                                        </template>
+                                    </iron-list>
+                                </template>
+                            </div>
+                            <div class="bottomNav relative">
+                                <div class="fit horizontal layout">
+                                <span class="flex center">
+                                    <paper-icon-button name="1" icon="icons:home" title="Privat" on-tap="_setSelectedTripTypes"
+                                                       disabled="[[!editableTripsSelected]]"></paper-icon-button>
+                                </span>
+                                <span class="flex center">
+                                    <paper-icon-button name="2" icon="icons:swap-horiz" title="Arbeitsweg" on-tap="_setSelectedTripTypes"
+                                                       disabled="[[!editableTripsSelected]]"></paper-icon-button>
+                                </span>
+                                <span class="flex center">
+                                    <paper-icon-button name="3" icon="card-travel"  title="Dienstlich" on-tap="_setSelectedTripTypes"
+                                                       disabled="[[!editableTripsSelected]]"></paper-icon-button>
+                                </span>
+                                <span class="flex center">
+                                    <paper-icon-button
+                                            disabled="[[_mergeButtonDisabled(mergeEnabled,editableTripsSelected)]]"
+                                            icon="editor:wrap-text" on-tap="_mergeSelected">
+                                    </paper-icon-button>
+                                </span>
+                                <span class="flex center">
+                                    <paper-icon-button icon="icons:check"
+                                                       on-tap="_setSelectedReviewed" trip="[[trip]]"
+                                                       title="Als erledigt markieren." disabled="[[_mergeButtonDisabled(reviewEnabled,editableTripsSelected)]]">
+                                    </paper-icon-button>
+                                </span>
+                                </div>
+
+                            </div>
+                        </div>
+                    </paper-material>
+                </div>
+            </neon-animatable>
+
+            <!-- Start page 1 / edit Trip -->
+            <neon-animatable name="edit" class="lhm-tab-animation fit scroll">
+                <trip-edit id="tripEdit"
+                           class$="[[ifTrue(isMobile,'mobile','desktop')]]"
+                           trip="{{selectedTrip}}"
+                           is-start="[[selectedAsStart]]"
+                           is-end="[[selectedAsEnd]]"
+                           trips="{{allTrips}}"
+                           contacts="{{contacts}}"
+                           class$="[[ifTrue(isMobile,'mobile','desktop')]]"
+                           contacts-by-id="{{contactsById}}"
+                           drivers="{{drivers}}"
+                           drivers-by-id="{{driversById}}"
+                           on-back="_onBack"
+                           on-canceled="_onBack"
+                           on-merge="_mergeSelectedTrips"
+                           on-updated="_onUpdated"
+                           on-contact-created="_contactCreated"
+                           loading="{{editLoading}}"
+                           on-checked="_checkedTrips"
+                           selected-edit-page="{{realSelectedEditPage}}"
+                           selected-loading="[[selectedIdLoading]]"
+                           hide-old-contacts="[[hideOldContacts]]"
+                           is-mobile="[[isMobile]]"
+                           t="{{t}}"
+                ></trip-edit>
+            </neon-animatable>
+
+
+        </neon-animated-pages>
+
+    </template>
+
+    <script>
+
+        function ignoreStop(tripId,isStart) {
+            var trip = tripList.trips[getIdxFromId(tripId,tripList.trips)];
+            var event = {model:{trip:trip}};
+            if(isStart) {
+                tripList._mergeWithPrev(event);
+            } else {
+                tripList._mergeWithNext(event);
+            }
+        }
+        var tripList;
+        Polymer({
+            is: "trip-list",
+
+            behaviors: [
+                OdlBehaviors.OdlListBehavior,
+                Polymer.NeonAnimatableBehavior,
+                Polymer.NeonAnimationRunnerBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                lastMergedTrips:Array,
+                firstSelection: {
+                    type:Boolean,
+                    value:true
+                },
+                trips: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    },
+                    observer:"_tripsChanged"
+                },nearTrips: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                selectedItems: {
+                    type:Array,
+                    value:[]
+                },
+                anyItemsSelected: {
+                    type:Boolean,
+                    computed:'_anyItemsSelected(selectedItems)'
+                },
+                notReviewedCount: {
+                    type: Number,
+                    notify:true,
+                    value:0
+                },
+                selectedEditPage: {
+                    type: String,
+                    value: "edit"
+                },
+                allTrips: {
+                    type:Array,
+                    computed:"getAllTrips(trips,nearTrips)"
+                },
+                selectedTrip: {
+                    type: Object,
+                    notify: true,
+                    observer: '_selectedTripChanged'
+                },
+                selectedPage: {
+                    type: Number,
+                    notify: true,
+                    observer: "_selectedPageChanged",
+                    value:0
+                },
+
+                selectedAsStart: {
+                    type: Boolean,
+                    notify: true,
+                    value: false,
+                },
+                selectedAsEnd: {
+                    type: Boolean,
+                    notify: true,
+                    value: false,
+                },
+                minTime: {
+                    type: Date,
+                    notify: true,
+                    value: new Date(0,0,0),
+                    observer: '_filtersChanged'
+                },
+                maxTime: {
+                    type: Date,
+                    notify: true,
+                    value: new Date(0,0,0),
+                    observer: '_filtersChanged'
+                },
+                contacts: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                contactsById: {
+                    type: Object,
+                    notify: true,
+                    value: function() {
+                        return {};
+                    }
+                },
+                drivers: {
+                    type:Array,
+                    value: [],
+                    notify:true
+                },driversById: {
+                    type: Object,
+                    value: {}
+                },
+                devices: {
+                    type: Array,
+                    notify: true,
+                    value: [],
+                    observer: '_filtersChanged'
+                },
+                devicesById: {
+                    type: Object,
+                    value:{}
+                },
+                includeTracks: Boolean,
+                t: { type:Object,value:{}},
+                changeStack: {
+                    type:Object,
+                    value:{}
+                },
+                waitingForChange:{
+                    type:Boolean,
+                    value:false
+                },
+                lastChangeTime:{
+                    type:Number,
+                    value:0
+                },
+                pendingUpdCount: {
+                    type:Number,
+                    value:0
+                },
+                mergeEnabled: Boolean,
+                reviewEnabled:Boolean,
+                editableTripsSelected:Boolean,
+                hideOldContacts: Boolean,
+                hoveredTrip:{
+                    type:Object,
+                    observer:"_hoveredTripChanged"
+                },
+                tripsChanged:Number,
+                cars: Array,
+                exportLoading: {type:Boolean, notify:true}
+            },
+            observers: [
+                '_filtersChanged(devices.splices)',
+                '_contactsChanged(contacts.splices)',
+                '_tripsChanged(trips.splices)',
+                '_selectedItemsChanged(selectedItems.splices)'
+            ],
+            _getTypeClass: function(tripType) {
+                switch(tripType) {
+                    case 2 : return "workway";break;
+                    case 3 : return "business";break;
+                    default : return "private";break;
+                }
+            },
+            _openDownloadSelector: function() {
+                this.$.downloadSelector.open();
+            },
+            _getReviewed: function(tripReviewed) {
+                if(tripReviewed) return "Bestätigt";
+                return "Nicht bestätigt";
+            },
+            _getElevation: function(selected) {
+                if(!selected) return 30;
+                return 1;
+            },
+            _getGridClass: function(trips,idx,isMobile,highlighted) {
+                var k = "";
+                if(!isMobile) return "";
+                if(this._isNewDay(trips,idx)) {
+                    k = "gridWithHeading";
+                } else {
+                    k = "gridWithoutHeading";
+                }
+                if(highlighted) k+=" highlighted";
+                return k;
+            },
+            _isNewDay: function(trips,idx) {
+                if(idx==1)
+                    return true;
+                return false;
+            },
+            /**
+             * Initialise pdf-download
+             * @private
+             */
+            _downloadPdf: function() {
+                this.async(function(){
+                    var carId = this.selectedCarId;
+                    // Start AJAX request
+                    this.$.odl_export.export("pdf",this.minTime.getTime(),this.maxTime.getTime(),carId);
+
+                },500);
+            },
+            ifTrue: function(isTrue,True,False) {
+                if(isTrue)  return True;
+                return False;
+            },
+            getMergeTitle:function (mergeEnabled, selected, t) {
+                if(!t) {
+                    return "no translation available :(";
+                }
+                if(!mergeEnabled && !selected) {
+                    return t.mergeTrips;
+                } else if(!mergeEnabled && selected) {
+                    return t.mergeTripsBlocked;
+                }
+                return t.mergeTripsEnabled;
+            },
+            _anyItemsSelected(selectedItems) {
+                return selectedItems && selectedItems.length>0
+            },
+            _noEditableTripsSelected:function(selectedTrips) {
+                var editableItems = false;
+                if (selectedTrips && selectedTrips.length>0) {
+                    editableItems = true;
+                    $.each(selectedTrips,function(){
+                        if(!this.editable) {
+                            editableItems = false;
+                            return false;
+                        }
+                    })
+                }
+                return !editableItems
+            },
+            _computeClass : function(selected) {
+                return selected?"selected":"";
+            },
+            canMergeWithNext : function(pos,trip,editable) {
+                if (!editable) return false;
+                if(this.trips==undefined || this.trips.length<pos-1) return false;
+                return this.$.tripEdit.checkIfMergeAllowed([trip,this.trips[pos+1]]);
+            },
+            canMergeWithPrev : function(pos,trip,editable) {
+                if (!editable) return false;
+                if(pos==0 || this.trips==undefined) return false;
+                return this.$.tripEdit.checkIfMergeAllowed([this.trips[pos-1],trip]);
+            },
+            _selectedItemsChanged: function() {
+
+                if(this.selectedItems && this.selectedItems.length>0) {
+                    if(this.firstSelection) {
+                        this.firstSelection = false;
+                        // workaround for not being deselectable, because array-selector._selectedColl not initialised correctly
+                        var i = this.selectedItems[0];
+                        this.clearSelection();
+                        if(this.isMobile)
+                            this.$$("#mobileTripIronList").selectItem(i);
+                        else
+                            this.$$("#tripIronList").selectItem(i);
+                    } else if(this.selectedItems.length==1) {
+                        this.mergeEnabled = false;
+                        this.reviewEnabled = !this.selectedItems[0].Reviewed;
+                    } else {
+                        this.mergeEnabled = this.$.tripEdit.checkIfMergeAllowed(this.selectedItems);
+                        var that = this;
+                        this.reviewEnabled = false;
+                        $.each(that.selectedItems, function(){
+                            if(!this.Reviewed) {
+                                that.reviewEnabled = true;
+                                return false;
+                            }
+                        })
+                    }
+                } else {
+                    this.mergeEnabled = false;
+                }
+                this.editableTripsSelected = !this._noEditableTripsSelected(this.selectedItems);
+            },
+            _onHovered: function(el) {
+                var t = el.model.trip;
+                if(t) {
+                    this.hoveredTrip=t;
+                }
+            },
+            _onUnHovered: function(el) {
+                var t = el.model.trip;
+                this.async(function(){
+                    if(this.hoveredTrip==t) {
+                        this.hoveredTrip = null;
+                    }
+                },50);
+
+            },
+            _hoveredTripChanged: function(t) {
+                var id = t?t.Id:-1;
+                if(id==-1 && this.routeParams.selectedId!=-1) {
+                    id = this.routeParams.selectedId;
+                }
+                var that = this;
+                $.each(this.trips,function(i){
+                    var found = false;
+                    if(this.Id==id || id==-1) {
+                        found = true;
+                    } else if(that.selectedItems) {
+                        var curId = this.Id;
+                        $.each(that.selectedItems, function() {
+                            if(this.Id==curId) {
+                                found = true;
+                                return false;
+                            }
+                        });
+                    }
+                    if(!found) {
+                        that.set("trips."+i+".hidden",true);
+                    } else {
+                        that.set("trips."+i+".hidden",false);
+                    }
+
+                })
+            },
+            _mergeButtonDisabled : function(mergeEnabled,selected) {
+                return !mergeEnabled || !selected;
+            },
+            _greater1:function(id) {
+                return id>-1?"hidden":"";
+            },
+            _less0:function(id) {
+                return id<0||id==undefined?"display:none;":"";
+            },
+            isZero:function(n) {
+                if(n==0) return "hidden";
+                return "visible";
+            },
+            clearSelection:function() {
+                console.log("Clear it!");
+                this.async(function(){
+                    if(this.isMobile)
+                        this.$$("#mobileTripIronList").clearSelection();
+                    else
+                        this.$$("#tripIronList").clearSelection();
+                });
+            },
+            getAllTrips:function(trips,nearTrips) {
+                return trips.concat(nearTrips);
+            },
+            _setReviewed: function(event){
+                var trip = event.model != null ? event.model.trip : event.detail.trip;
+                trip.Reviewed = 1;
+                this._stackChangedTrip(trip);
+            },
+            _setSelectedTripTypes: function(event) {
+                var type = parseInt(event.srcElement.parentNode.attributes["name"].value);
+                var that = this;
+                $.each(this.selectedItems,function() {
+                    if(this.Type != type) {
+                        this.Type = type;
+                        that._stackChangedTrip(this);
+                    }
+                });
+
+            },
+            _setSelectedReviewed: function(event){
+                var that = this;
+                $.each(this.selectedItems,function() {
+                    if(this.Reviewed != 1) {
+                        this.Reviewed = 1;
+                        that._stackChangedTrip(this);
+                    }
+                });
+            },
+            _negate: function(b) {
+                return !b;
+            },
+            _mergeWithPrev: function(event) {
+                event.stopPropagation();
+                var trip = event.model != null ? event.model.trip : event.detail.trip;
+                var pos = getIdxFromId(trip.Id,this.trips);
+                if(pos<1) return false;
+                this._mergeSelected(event,[this.trips[pos-1],trip]);
+            },
+            _mergeWithNext: function(event) {
+                event.stopPropagation();
+                var trip = event.model != null ? event.model.trip : event.detail.trip;
+                var pos = getIdxFromId(trip.Id,this.trips);
+                if(pos>=trips.length-1 || pos==-1) return false;
+                this._mergeSelected(event,[trip,this.trips[pos+1]]);
+            },
+            _getClass: function(reviewed) {
+                if(reviewed) {
+                    return "Reviewed";
+                }
+                return "needsReview";
+            },
+            filtersChanging: false,
+            _contactCreated: function(event) {
+                console.log('trip-list: contact was created', event);
+                this.fire("contactCreated",event.detail);
+            },
+            _filtersChanged: function () {
+                if (this.filtersChanging) {
+                    console.log('Filters for trip-list already in change - skip this');
+                    return;
+                }
+                this.filtersChanging = true;
+                var that = this;
+                // debounce
+                window.setTimeout(function () {
+                    console.log('Filters for trip-list changed!');
+                    var zeroDate = new Date(0,0,0).getTime();
+                    if (that.minTime.getTime() == zeroDate || that.maxTime.getTime() == zeroDate || that.devices.length == 0) {
+                        console.log('Filters for trip-list not completely set - do nothing');
+                        that.filtersChanging = false;
+                        return;
+                    }
+                    that.abortAllRequests();
+                    /*
+                     Get +/- 1 day to enable trip merges on time range end
+                     */
+                    that.$.ajaxTripFetcher.body.minTime = that.minTime.addDays(-1).getTime();
+                    that.$.ajaxTripFetcher.body.maxTime = that.maxTime.addDays(1).getTime();
+                    that.$.ajaxTripFetcher.body.history = "1";
+                    that.trips = [];
+                    var devices="";
+                    for (i = 0; i < that.devices.length; i++) {
+                        var device = that.devices[i];
+                        if(device.Checked>0) {
+                            if(devices!=="")
+                                devices += ",";
+                            devices += device.Id;
+                        }
+                    }
+                    if (devices!=="") {
+                        that.$.ajaxTripFetcher.body.devices = devices;
+                        that.$.ajaxTripFetcher.generateRequest();
+                    } else {
+                        console.warn("No device selected");
+                    }
+                    that.filtersChanging = false;
+                }, 100);
+            },
+            _tripsChanged: function(newVal,oldVal) {
+                if(newVal && newVal.indexSplices) {
+                    var k = newVal;
+                    newVal = [];
+                    for (var i = 0;i< k.indexSplices[0].addedKeys.length;i++) {
+                        newVal.push(k.indexSplices[0].object[k.indexSplices[0].addedKeys[i]]);
+                    }
+                }
+                var that = this;
+                that.nearTrips=[];
+                if (newVal != undefined) {
+                    $.each(newVal, function(i,v) {
+                        if(v===undefined || (v.removed!==undefined && v.removed.length>0)) return; // deleted trip
+                        v = that.recalcTrip(i,v);
+                        if(v.EndTime<that.minTime.getTime() || v.StartTime>that.maxTime.getTime()) {
+                            if(that.nearTrips.indexOf(v)<0)
+                                that.push("nearTrips",v);
+                        }
+                    });
+                    $.each(that.nearTrips,function(i,v){
+                        that.trips.splice(that.trips.indexOf(v),1);
+                    });
+                }
+                var c = 0;
+                $.each(that.trips,function(i,v){
+                    if(!v.Reviewed) {
+                        c++;
+                    }
+                });
+                that.set("notReviewedCount",c);
+            },
+            checkAll: function() {
+                var trips = [];
+                var that = this;
+                $.each(this.trips,function(i,t) {
+                    if(!t.Reviewed) {
+                        trips.push(that.$.tripEdit.polish(t));
+                    }
+                });
+                this.$.tripEdit.updateTrips(trips);
+                this.set("notReviewedCount",0);
+            },
+            _checkedTrips: function(event) {
+                var checkedIds = event.detail.response.CheckedTripIds;
+                for (var i = 0;i<this.trips.length;i++) {
+                    if(checkedIds.indexOf(this.trips[i].Id)!==-1) {
+                        this.set ("trips."+i+".Reviewed",true);
+                    }
+                }
+            },
+            calcTripType:function(trip) {
+                return this.$.tripEdit.calcTripType(trip);
+            },
+            calcContacts:function(trip) {
+                return this.$.tripEdit.calcContacts(trip);
+            },
+            calcTripTitle: function(trip,noType) {
+                return this.$.tripEdit.calcTripTitle(trip,noType);
+            },
+            recalcTrip: function(key,trip) {
+                if(key==-1 || key==undefined) {
+                    key = getIdxFromId(trip.Id,this.trips);
+                }
+                // TODO : If we get an error with missing devices/colors, we might need to wait until device-list is filled.
+                trip.Device = this.devicesById[trip.DeviceId];
+                trip.Driver = this.driversById[trip.DriverId]
+                trip = this.calcContacts(trip);
+                trip = this._updateStartEndContacts(trip);
+                if(!trip.Reviewed && trip.Type<=1) {
+                    trip = this.calcTripType(trip);
+                }
+                trip = this.calcEditableTime(trip);
+                // title is only used client side from now on.
+                trip.Title = this.calcTripTitle(trip);
+                if(key>-1 && key!==false && key!==undefined) {
+                    if(!this.trips[key].Reviewed && trip.Reviewed)
+                        this.set("notReviewedCount",this.notReviewedCount-1);
+                    this.set("trips."+key,trip);
+                    this.set("trips."+key+".Device",trip.Device);
+                    this.set("trips."+key+".Driver",trip.Driver);
+                    this.set("trips."+key+".Type",trip.Type);
+                    this.set("trips."+key+".Title",trip.Title);
+                    this.set("trips."+key+".startContacts",trip.startContacts);
+                    this.set("trips."+key+".endContacts",trip.endContacts);
+                }
+                return trip;
+
+            },
+            calcEditableTime : function(trip) {
+                if(trip.editableUntil===undefined) {
+                    trip.editableUntil = new Date().getTime() - 60*1000 + trip.EditableTime
+                }
+                if (trip.editableUntil<new Date().getTime()) {
+                    trip.editable = false;
+                    trip.editableRemaining ="0:00:00"
+                } else {
+                    trip.editable = true;
+                    trip.editableRemaining = this.formatTimeDiff(trip.editableUntil-new Date().getTime())
+
+                }
+                trip.editable = trip.editable || (odl.user && odl.user.Level==1337);
+                return trip;
+            },
+            _updateStartEndContacts : function(trip) {
+                return this.$.tripEdit._updateStartEndContacts(trip);
+            },
+            _selectStartTrip: function(event) {
+                this.set('selectedAsStart', true);
+                this.set('selectedAsEnd', false);
+                this.showDetails(event);
+            },
+
+            _selectEndTrip: function(event) {
+                this.set('selectedAsStart', false);
+                this.set('selectedAsEnd', true);
+                this.showDetails(event);
+            },
+
+            showDetailsForId : function(tripId) {
+                trip = this.trips[getIdxFromId(tripId,this.trips)];
+                this.showDetails({model:{trip:trip}});
+            },
+            showDetails: function(event) {
+                event.stopPropagation();
+                if(this.selectedTrip)
+                    this.set('trips.'+getIdxFromId(this.selectedTrip.Id,this.trips)+'.highlighted',false);
+                var trip = event.model != null ? event.model.trip : event.detail.trip;
+                this.set("routeParams.selectedId",trip.Id);
+                this.set('trips.'+getIdxFromId(trip.Id,this.trips)+'.highlighted',true);
+                var id = trip.Id;
+                var that = this;
+                $.each(this.trips,function(i){
+                    if(this.Id==id) {
+                        that.set("trips."+i+".hidden",false);
+                    } else {
+                        that.set("trips."+i+".hidden",true);
+                    }
+
+                });
+                this.selectedEditPage = "edit";
+
+                //this.playAnimation('listToEdit');
+                this.async(function() {
+                    this.set("routeParams.listSelectedName","edit");
+                });
+            },
+            _selectedPageChanged: function(newVal,oldVal) {
+                if(this.selectedPage===0) {
+                    this.set('selectedAsStart', false);
+                    this.set('selectedAsEnd', false);
+                }
+            },
+            _dontPropagate: function(event) {
+                event.stopPropagation();
+            },
+            _onBack: function(event) {
+                if (event.detail.type === "trip") {
+                    this.clearSelection();
+                    var t = event.detail.updatedObject;
+                    if(t) {
+                        t.highlighted = false;
+                        this.notifyAboutChange(t, "highlighted");
+                    }
+                    this.async(function() {
+                        this.backToList(event);
+                    });
+                } else {
+                    console.log('trip-list: _onBack detailtype not trip', event);
+                }
+            },
+            _onUpdated: function(event) {
+                var that = this;
+                if (event.detail.type === "trip") {
+                    var upd = event.detail.response.UpdatedTrips;
+                    var del = event.detail.response.RemovedTrips;
+                    if(del) {
+                        for (var k = 0;k<del.length;k++) {
+                            var i = k;
+                            var idx = this.getIdxFromId(del[i].Id,this.trips);
+                            if (idx>-1) {
+                                if(!this.trips[i].Reviewed) {
+                                    that.set("notReviewedCount",that.notReviewedCount-1);
+                                }
+                                that.splice("trips", idx, 1);
+                            }
+                        }
+                    }
+                    if(upd) {
+                        this.pendingUpdCount--;
+
+                        for (var j = 0;j<upd.length;j++) {
+                            var i = j;
+
+                            var idx = this.getIdxFromId(upd[i].Id,this.trips);
+                            if (idx>-1) {
+                                that.recalcTrip(idx,upd[i]);
+                                that.set("trips."+idx+".highlighted",true);
+                                window.setTimeout(function(){
+                                    if(that.selectedTrip!==that.trips[idx])
+                                        that.set("trips."+idx+".highlighted",false);
+                                },1500);
+                            } else {
+                                var insPos = 0;
+                                var sTime = upd[i].StartTime;
+                                $.each(this.trips,function(i,trip){
+                                    if(sTime > trip.StartTime) {
+                                        insPos = i+1;
+                                    } else {
+                                        return false;
+                                    }
+                                });
+                                this.splice("trips",insPos,0,upd[i]);
+                                that.recalcTrip(insPos,upd[i]);
+                                that.set("trips."+insPos+".highlighted",true);
+                                window.setTimeout(function(){
+                                    if(that.selectedTrip!==that.trips[insPos])
+                                        that.set("trips."+insPos+".highlighted",false);
+                                },1500);
+
+                            }
+                        }
+                        event.detail.updatedObject = upd[0];
+                    }
+
+                }
+                this._onBack(event);
+                if(this.pendingUpdCount>0) this.loading=true;
+            },
+            _openStartCSelector: function(e) {
+                var startSelector = e.detail;
+                var trip = e.model.trip;
+                startSelector.set("contacts", trip.startContacts);
+                startSelector.set("contactsById", this.contactsById);
+                $("#startSelector #trigger > div > paper-input paper-input-container").css("padding","0 2px 0 2px");
+                this.async(function()
+                {
+                    startSelector.open();
+                },100);
+            },
+            _openEndCSelector: function(e) {
+                var endSelector = e.detail;
+                var trip = e.model.trip;
+                endSelector.set("contacts", trip.endContacts);
+                endSelector.set("contactsById", this.contactsById);
+                // Dirty :> But somehow css did not work otherwise
+                $("#endSelector #trigger > div > paper-input paper-input-container").css("padding","0 2px 0 2px");
+                this.async(function()
+                {
+                    endSelector.open();
+                },100);
+            },
+            _contactsChanged: function() {
+                /* console.log('trip-list contacts changed', this.contacts, 'and byId', this.contactsById); */
+                if(this.contacts.length>0 && this.trips.length>0) {
+                    var that = this;
+                    $.each(that.trips,function(key,v){
+                        that.recalcTrip(key,v);
+                    });
+                }
+            },
+
+            _cancelEdit: function() {
+                this.async(function() {
+                    this.selectedPage = 0;
+                });
+            },
+
+            create: function () {
+                // access a local DOM element by ID using this.$
+            },
+            ready: function () {
+                var that = this;
+                window.addEventListener("resize",function(e) {
+                    if(!that.isMobile) return;
+                    var w = window.innerWidth;
+                    window.setTimeout(function(){
+                        if(w==window.innerWidth) {
+                            that.$$("#mobileTripIronList").notifyResize();
+                        }
+                    },333)
+                });
+                window.addEventListener("orientationchange",function(e) {
+                    if(!that.isMobile) return;
+                    var w = window.innerWidth;
+                    window.setTimeout(function(){
+                        if(w==window.innerWidth) {
+                            that.$$("#mobileTripIronList").notifyResize();
+                        }
+                    },333)
+                });
+                if (this.includeTracks) {
+                    this.$.ajaxTripFetcher.body.includeTracks = "true";
+                }
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "trips";
+                this.listNameUpper = "Trips";
+                this.fetcher = this.$.ajaxTripFetcher;
+                tripList = this;
+                this.selectedPage=0;
+                var that = this;
+                window.setTimeout(function(){that.autoRefresh()},60000);
+            },
+            autoRefresh : function() {
+                console.log("trip-list.autoRefresh called");
+                var that = this;
+                if(this.trips) {
+                    $.each(this.trips, function(i,trip) {
+                        trip = that.calcEditableTime(trip);
+                        that.set("trips."+i+".editableUntil",trip.editableUntil);
+                        that.set("trips."+i+".editableRemaining",trip.editableRemaining);
+                        that.set("trips."+i+".editable",trip.editable);
+                    });
+
+                }
+                window.setTimeout(function(){that.autoRefresh()},60000);
+            },
+            needsReview: function(trip) {
+                if (trip.Reviewed === 0)  {
+                    return 'Bitte überprüfen';
+                } else {
+                    return 'erledigt';
+                }
+            },
+            getStartTime: function (trip, short, noDate) {
+                var dateFormat = "E dd.MM.yyyy HH:mm";
+                if (short) {
+                    dateFormat = "E d.M. HH:mm";
+                }
+                if(noDate) {
+                    dateFormat="HH:mm";
+                }
+
+                if (trip !== undefined) {
+                    var s = "";
+                    s += $.format.date(new Date(trip.StartTime), dateFormat);
+                }
+                return s;
+            },
+            formatTimeDiff : function(diff) {
+                // http://stackoverflow.com/questions/14297625/work-with-a-time-span-in-javascript
+                var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                diff -=  days * (1000 * 60 * 60 * 24);
+
+                var hours = Math.floor(diff / (1000 * 60 * 60));
+                diff -= hours * (1000 * 60 * 60);
+
+                var mins = Math.floor(diff / (1000 * 60));
+                diff -= mins * (1000 * 60);
+
+                //var seconds = Math.floor(diff / (1000));
+                // diff -= seconds * (1000);
+
+                return(days + "d" + ("0" + hours).slice(-2) + "h" + ("0" + mins).slice(-2)+"m");
+            },
+            getStart: function (trip, short) {
+                if (trip !== undefined) {
+                    var s = "";
+                    if(trip.StartContact) {
+                        s += " " + trip.StartContact.Title;
+                    } else {
+                        s += " " + this.formatAddress(trip.StartAddress,short);
+                    }
+                    return s;
+                } else {
+                    return "FEHLER!";
+                }
+            },
+            getStartTooltip: function (trip,short) {
+                if (trip !== undefined) {
+                    if(trip.StartContact) {
+                        return this.formatAddress(trip.StartAddress,short);
+                    } else {
+                        return this.t.noMatchingContact
+                    }
+                } else {
+                    return "FEHLER!";
+                }
+            },
+            getEndTooltip: function (trip,short) {
+                if (trip !== undefined) {
+                    if(trip.EndContact) {
+                        return this.formatAddress(trip.EndAddress,short);
+                    } else {
+                        return this.t.noMatchingContact
+                    }
+                } else {
+                    return "FEHLER!";
+                }
+            },
+            getEndTime: function(trip,short,noDate) {
+                var dateFormat = "E dd.MM.yyyy HH:mm";
+                if (short) {
+                    dateFormat = "E d.M HH:mm"
+                }
+                if(noDate) {
+                    dateFormat="HH:mm";
+                }
+                if (trip !== undefined) {
+                    var s = "";
+                    s += $.format.date(new Date(trip.EndTime), dateFormat);
+                }
+                return s;
+            },
+            getEnd: function (trip, short) {
+
+                if (trip !== undefined) {
+                    var s = "";
+                    if(trip.EndContact) {
+                        s += " " + trip.EndContact.Title;
+                    } else {
+                        s += " " + this.formatAddress(trip.EndAddress,short);
+                    }
+                    return s;
+                } else {
+                    return "FEHLER!";
+                }
+            },
+            _getMobileTitle: function(trip) {
+                var l = Math.round(465/15);
+                if(trip.Title != this.calcTripTitle(trip)) {
+
+                    return this.cutString(trip.Title,l,true);
+                } else {
+                    return this.cutString(this.calcTripTitle(trip,true),l,true);
+                }
+            },
+
+            formatAddress: function(address,short,width) {
+                var s = formatAddress(address,short);
+                if (short) {
+                    if(!width) {
+                        if(isMobile) width = Math.round(465/15);
+                        else width = Math.round(($(this).width() - 55) / 15);
+                    }
+                    s = this.cutString(s,width,true);
+                }
+                return s;
+            },
+            initItem: function(trip) {
+                trip.highlighted=false;
+                if(trip.DriverId>-1 && this.driversById[trip.DriverId]) trip.Driver=this.driversById[trip.DriverId];
+            },
+            _selectedStartContactChanged: function(e) {
+                var c = e.detail.selectedContact;
+                var t = e.model.trip;
+                if(t) {
+                    if(c===undefined && t.StartContactId!=-1 && t.StartContactId!==undefined) {
+                        t.StartContactId=-1;
+                        t.StartContact = undefined;
+                        this._stackChangedTrip(t);
+                    } else if (c && t.StartContactId!= c.Id) {
+                        t.StartContactId = c.Id;
+                        t.StartContact = c;
+                        this._stackChangedTrip(t);
+                    }
+
+                }
+            },
+            _selectedEndContactChanged: function(e) {
+                var c = e.detail.selectedContact;
+                var t = e.model.trip;
+                if(t) {
+                    if(c===undefined && t.EndContactId!=-1 && t.EndContactId!==undefined) {
+                        t.EndContactId=-1;
+                        t.EndContact = undefined;
+                        this._stackChangedTrip(t);
+                    } else if (c && t.EndContactId!= c.Id) {
+                        t.EndContactId = c.Id;
+                        t.EndContact = c;
+                        this._stackChangedTrip(t);
+                    }
+
+                }
+            },
+            _tripTypeChanged: function(e) {
+                var t = e.model.trip;
+                if(t) {
+                    t.Type = parseInt(t.Type);
+                    this._stackChangedTrip(t);
+                }
+            },
+            _returnChanged: function(e) {
+                var t = e.model.trip;
+                if(t) {
+                    t.IsReturnTrip = t.IsReturnTrip?true:false;
+                    this._stackChangedTrip(t);
+                }
+            },
+            _titleChanged: function(e) {
+                var t = e.model.trip;
+                if(t) {
+                    this._stackChangedTrip(t);
+                }
+            },
+            _stackChangedTrip: function(t) {
+                if (!this.waitingForChange) {
+
+                    this.changeStack = {};
+                    this.waitingForChange = true;
+                    this.async(function(){
+                        this._waitForChange();
+                    },500);
+                }
+                this.recalcTrip(-1,t);
+                this.changeStack[t.Id] = this.$.tripEdit.polish(t);
+                this.lastChangeTime = Date.now() / 1000;
+                this.loading=true;
+            },
+            _waitForChange:function() {
+                if( Date.now() / 1000 - this.lastChangeTime < 3 || this.lastChangeTime == 0) {
+                    // don't update until last change is 3 seconds ago
+                    this.async(function(){
+                        this._waitForChange();
+                        console.log("Changes stacked, but no 3 seconds without change");
+                    },1000);
+                } else { // No changes for last 3 seconds - save changes.
+                    console.log("Changes stacked, 3 seconds without change - start saving", this.changeStack);
+                    var that = this;
+                    var stack = this.changeStack;
+                    // http://stackoverflow.com/questions/6857468/a-better-way-to-convert-js-object-to-array
+                    var array = $.map(stack, function(value, index) {
+                        return that.$.tripEdit.polish(value);
+                    });
+                    this.changeStack = {};
+                    this.waitingForChange = false;
+                    this.pendingUpdCount++;
+                    this.$.tripEdit.updateTrips(array);
+                }
+            },
+            _mergeSelected: function(e,tripsToMerge) {
+                e.stopPropagation();
+                if(tripsToMerge==undefined || tripsToMerge.sourceEvent!==undefined)
+                    tripsToMerge = this.selectedItems;
+                var newTrip = this.$.tripEdit.mergeTrips(tripsToMerge);
+                tripsToMerge.sort(function(a,b){
+                    return a.StartTime < b.StartTime ? -1 : (a.StartTime> b.StartTime?1:0)
+                });
+                if(newTrip === undefined || newTrip.Id === undefined) {
+                    showWarning("tooLongStop",this.t);
+                    return;
+                }
+                var k = -1;
+                for (var i=tripsToMerge.length-1;i>=0;i--) {
+                    k++;
+                    var kk = k;
+                    var oldTrip = tripsToMerge[i];
+                    if(i==0) {
+                        var func = function(oldT,that){
+                            return function() {
+                                var div = $("#tripDiv"+oldT.Id);
+                                var oldId = getIdxFromId(oldT.Id, that.trips);
+
+                                if (oldId < 0) {
+                                    console.warn("Did not find old trip with id ", oldT.Id, oldT);
+                                } else {
+                                    div.fadeOut(200, function () {
+                                        console.log("Setting trip with id " + oldT.Id + " to new trip with id " + newTrip.Id + " at position " + oldId, oldT, newTrip);
+                                        that.splice("trips",oldId,1, newTrip);
+                                        div.fadeIn(200);
+                                    });
+                                }
+                            }
+
+                        };
+                        this.async(func(oldTrip,this),/*kk**/400+1)
+                    } else {
+                        var func2 = function(oldT,that) {
+                            return function () {
+                                var oldId = getIdxFromId(oldT.Id, that.trips);
+                                if (oldId > -1) {
+                                    var div = $("#tripDiv" + oldT.Id);
+                                    var oldHeight = div.css("height");
+                                    div.animate({"height": "0px"}, 400, "swing", function () {
+                                        console.log("Removing old trip with id " + oldT.Id + " at position " + oldId, oldT);
+                                        if(!that.trips[oldId].Reviewed) {
+                                            that.set("notReviewedCount",that.notReviewedCount-1);
+                                        }
+                                        that.splice("trips", oldId, 1);
+                                        div.css("height",oldHeight);
+                                    });
+                                }
+
+                            };
+                        };
+                        this.async(func2(oldTrip,this),/*kk*400+1*/0)
+                    }
+                }
+                this._stackChangedTrip(newTrip);
+                this.clearSelection();
+            },
+            cutString: function(s,length, points) {
+                if(s&& s.length>length) {
+                    s = s.substring(0,length);
+                    if (points) s += "..."
+                }
+                return s;
+            },
+            _selectedTripChanged: function() {
+                this._hoveredTripChanged(this.hoveredTrip);
+            }
+        });
+
+
+    </script>
+
+</dom-module>

@@ -1,0 +1,752 @@
+<link rel="import" href="../../components/iron-fit-behavior/iron-fit-behavior.html">
+<script src="../../js/default.js"></script>
+<script>
+    var OdlBehaviors = OdlBehaviors || {};
+
+    /**
+     * <!-- TODO : UPDATE WITH NEW ROUTING CONCEPTS!!!! For now use car-list as example--->
+     *
+     * This implements most methods needed for handling a list, together with a
+     * edit-control implementing odl-editbehavior and a detail-control showing details
+     * in a paged environment.
+     *
+     * The most easy way to setup this is copying a list, e.g. "odl-listbehaviorexample.html" (that uses almost all features)
+     * and replace "contact" with "yourItemName" and "Contact" with "YourItemName" (case sensitive!)
+     *
+     * Then you only need to update the contents of the paper-icon-item
+     * and create a "your-item-detail" and "your-item-edit"-element. You can also use
+     * the list without these controls, than please delete the pages from the view.
+     *
+     *
+     *
+     *
+     * More detailed instructions :
+     * Please make sure to fill all public properties in the ready-event when using this.
+     * You need to have properties called "{listNameLower}s", "selected{listNameUpper}"
+     * setup like this :
+     contacts: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+     selectedContact: {
+                    type: Object,
+                    notify: true
+                }
+
+     * For returning from edited, deleted, canceled and returned views to the list,
+     * you need to listen to the events of the controls and call "backToList" (see
+     * odl-listbehaviorexample.html)
+     *
+     * Also implement all methods implemented in odl-listbehaviorexample.html
+     *
+     * try to put your ids most near to
+     * the odl-listbehaviorexample.html (e.g. "contactIronList" -> "yourItemNameIronList")
+     */
+    OdlBehaviors._OdlListBehavior = {
+        properties: {
+            searchValue: {
+                type:String,
+                observer:'_searchValueChanged'
+            },
+            fetcher: { // The iron-ajax object needed to get the list entries
+                type: Object,
+                observer: "_fetcherChanged",
+                value: undefined
+            },
+            listNameLower: { // The iron-ajax object needed to get the list entries
+                type: String,
+                observer: "_listNameLowerChanged"
+            }, // the lower case name of the list, e.g. "cars"
+            listNameUpper: { // The iron-ajax object needed to get the list entries
+                type: String,
+                observer: "_listNameUpperChanged"
+            }, // the upper case name of the list, e.g. "Cars"
+            ajaxLoading: { // The boolean linking the fetcher with a loading indicator, e.g. a spinner
+                type: Boolean,
+                value: false,
+                notify:true,
+                observer:"_singleLoadingChanged"
+            },editLoading: { // The boolean linking the edit/delete with a loading indicator, e.g. a spinner
+                type: Boolean,
+                value: false,
+                notify:true,
+                observer:"_singleLoadingChanged"
+            },detailLoading: { // The boolean linking another control with a loading indicator, e.g. a spinner
+                type: Boolean,
+                value: false,
+                notify:true,
+                observer:"_singleLoadingChanged"
+            },
+            selectedIdLoading: { // The boolean linking another control with a loading indicator, e.g. a spinner
+                type: Boolean,
+                value: false,
+                notify:true,
+                observer:"_singleLoadingChanged"
+            }
+            ,otherLoading1: { // The boolean linking another control with a loading indicator, e.g. a spinner
+                type: Boolean,
+                value: false,
+                notify:true,
+                observer:"_singleLoadingChanged"
+            },otherLoading2: { // The boolean linking another control with a loading indicator, e.g. a spinner
+                type: Boolean,
+                value: false,
+                notify:true,
+                observer:"_singleLoadingChanged"
+            }, // the upper case name of the list, e.g. "Cars"
+            loading: { // The boolean linking the list with an loading indicator, faning in all other loading indicators
+                type: Boolean,
+                value: false,
+                notify:true
+            },
+            listSelectedName:{
+                type:String,
+                notify:true,
+                computed: '_getSame(routeParams.listSelectedName)'
+            },
+            editPage: { // The id of the page with the edit control for a single entry
+                type: String,
+                value: "edit"
+            },
+            listPage: { // The id of the page with the overview list
+                type: String,
+                value: "list"
+            },
+            ironList:{
+                type:Object,
+                value:undefined
+            },
+            mobileIronList:{
+                type:Object,
+                value:undefined
+            },
+            detailPage: { // The id of the page showing the details of a single entry
+                type: String,
+                value: "detail"
+            },
+            _itemNameUpper: String,
+            _itemNameLower: String,
+            _byIdName: String,
+            _deleteOpen:{
+                type:Boolean,
+                value:false
+            },
+            prevId:-1,
+            prevOp:"",
+            selectedId: {
+                type: String,
+                observer: '_selectedIdChanged',
+                computed: '_getSame(routeParams.selectedId)'
+            },
+            route: {type:Object, notify: true},
+            isActive:Boolean,
+            curSearchRes: {
+                type:Array
+            },
+            curSearchResLen: {
+                type:Number,
+                computed:"_getLen(curSearchRes,searchFocusIdx)"
+            },
+            searchFocusIdx: {
+                type:Number,
+                value:1,
+                observer:"_searchFocusIdxChanged"
+            },
+            isMobile: Boolean
+        },
+        observers:[
+            "_selectedIdChanged(routeParams.selectedId)",
+            "_listSelectedNameChanged(listSelectedName)",
+            "_rPathChanged(route.path,isActive)"
+        ],
+        ifTrue: function(isTrue,True,False) {
+            if(isTrue)  return True;
+            return False;
+        },
+        _rPathChanged: function(rPath,isActive) {
+            if(isActive)
+                this.async(function(){
+                    if(this.route.path=="" && this.isActive) {
+                        this.set("route.path","/list/-1");
+                    }
+                },500);
+        },
+        toggleDrawer: function() {
+            console.log("list toggle-drawer");
+            this.fire("toggle-drawer");
+        },
+        _getSelectedName(name) { // returns default tab "list" if no route is set up/used.
+            if(name==undefined || name == "") return "list";
+            return name;
+        },
+        _getSame: function(same) {
+            return same
+        },
+        _listSelectedNameChanged:function(newVal,oldVal) {
+            this.renderLists();
+        },
+        ready:function() {
+            //this.routeExtension = "/:listSelectedName?/:selectedId?/(.*)?";
+        },
+        _edit: function(event) {
+            console.log('_edit'+this.listNameLower, event);
+            var e = event.model != null ? event.model[this._itemNameLower] : event.detail[this._itemNameLower];
+            this.async(function(){
+                this.set("routeParams.selectedId",e.Id);
+                this.set("routeParams.listSelectedName","edit");
+            });
+        },
+        _delete: function(event) {
+            event.stopPropagation();
+            console.log('_delete'+this.listNameLower, event);
+            var e = event.model != null ? event.model[this._itemNameLower] : event.detail[this._itemNameLower];
+            this.set("routeParams.selectedId",e.Id);
+            this.routeParams.selectedId = e.Id;
+            this._selectedIdChanged(); //workaround for strange driver delete test issues.
+            this.async(function(){
+                this.set("routeParams.listSelectedName","edit");
+                this.$$("#" + this._itemNameLower + "Edit").delete_item(event)
+            });
+        },
+        _new: function(event) {
+            console.log('_new'+this.listNameLower, event);
+            this.async(function(){
+                if(this.routeParams.selectedId>-1)
+                    this.set("routeParams.selectedId",-1);
+                else
+                    this.set("routeParams.selectedId",this.routeParams.selectedId-1);
+                this.set("routeParams.listSelectedName","edit");
+
+            });
+        },
+        _selectedIdChanged: function() {
+            if(!this.routeParams || !this.routeParams.selectedId || this.routeParams.selectedId<0) {
+                this.selectedIdLoading = false;
+                this["selected"+this._itemNameUpper] = this.getNew();
+            } else if(this[this.listNameLower]) {
+                if (this[this.listNameLower].length==0) {
+                    var that = this;
+                    that.selectedIdLoading = true;
+                    window.setTimeout(function(){that._selectedIdChanged()},1000);
+                    return;
+                }
+                this.selectedIdLoading = false;
+                var idx = this.getIdxFromId(this.routeParams.selectedId,this[this.listNameLower]);
+                var pms = {};
+                pms[this._itemNameLower] = this[this.listNameLower][idx];
+                this.fire(this.listNameLower+'-clicked', pms);
+                if (this["selected"+this._itemNameUpper] != this[this.listNameLower][idx]) {
+                    this["selected"+this._itemNameUpper] = this[this.listNameLower][idx];
+                }
+            } else if (this.listNameLower) {
+                var that = this;
+                that.selectedIdLoading = true;
+                window.setTimeout(function(){that._selectedIdChanged()},1000);
+            }
+        },
+        _idChanged : function() {
+            this.async(function()
+            {
+                if(this.routeParams && this.routeParams[this._itemNameLower+"Id"] &&
+                        !(this.routeParams[this._itemNameLower+"Id"] == this.prevId && this.routeParams.operation!=this.prevOp)
+                ) {
+
+                    var id = this.routeParams[this._itemNameLower+"Id"];
+                    var op = this.routeParams.operation;
+                    this.prevId = id;
+                    this.prevOp = op;
+                    console.log("Id/Op changed : ",id, op);
+                    if (this.devicesById && id) {
+                        var elem;
+                        if(id==-1 || op == "create") {
+                            elem = this.getNew();
+                        } else if(this[this._byIdName]) {
+                            elem = this.devicesById[id];
+                        } else {
+                            elem = this[this.listNameLower][this.getIdxFromId(id,this[this.listNameLower])];
+                        }
+                        this.set("selected"+this._itemNameUpper, elem);
+                        if(op=="delete" && !this._deleteOpen) {
+                            this._deleteOpen=true;
+                            if (this.delete && typeof(this.delete)=="function")
+                            {
+                                this.async(function(){
+                                    this.delete();
+                                });
+                            } else {
+                                console.warn("Delete is not implemented.");
+                            }
+                        }
+                    } else {
+                        this.set("selectedDevice", undefined);
+                    }
+                }
+            });
+        },
+        _singleLoadingChanged: function() {
+            this.loading = this.ajaxLoading || this.editLoading || this.detailLoading || this.selectedIdLoading || this.otherLoading1 || this.otherLoading2;
+        },
+        _listNameLowerChanged: function() {
+            if (this.listNameLower) {
+                this._itemNameLower = this.listNameLower.substr(0, this.listNameLower.length - 1);
+                this._byIdName = this.listNameLower+"ById";
+                if(this[this._byIdName] !== undefined) { // we got an by id array
+                    this._observedList = this[this.listNameLower];
+                }
+            }
+        },
+        _listNameUpperChanged: function() {
+            if (this.listNameUpper)
+                this._itemNameUpper = this.listNameUpper.substr(0, this.listNameUpper.length - 1)
+        },
+
+        /**
+         * Goes to the list page
+         * @param {bool} [ignorePendingChanges] don't check if there are pending changes before changing page
+         * @param {number} [itemId]  Select this id
+         * @param {function} [finishFunc] Execute this function when page is opened successfully
+         */
+        openList: function(ignorePendingChanges,itemId,finishFunc) {
+            if (ignorePendingChanges)
+                this.changePage(this.listPage, itemId,finishFunc);
+            else
+                this.changePageIfNotPending(this.listPage,itemId, finishFunc);
+        },
+
+        /**
+         * Goes to the edit page
+         * @param {bool} [ignorePendingChanges] don't check if there are pending changes before changing page
+         * @param {number} [itemId]  Select the item with this id
+         * @param {function} [finishFunc] Execute this function when page is opened successfully
+         */
+        openEdit: function(ignorePendingChanges, itemId,finishFunc) {
+            if (ignorePendingChanges)
+                this.changePage(this.editPage, itemId,finishFunc);
+            else
+                this.changePageIfNotPending(this.editPage,itemId, finishFunc);
+        },
+        openCreate: function(ignorePendingChanges,finishFunc, dummyItem) {
+            var that = this;
+            var f = function() {
+                if (dummyItem) {
+                    that["selected" + that._itemNameUpper] = dummyItem;
+                }
+                if(typeof(finishFunc) === 'function') {
+                    finishFunc();
+                }
+            };
+            this.openEdit(ignorePendingChanges,-1,f);
+        },
+
+        /**
+         * Goes to the detail page
+         * @param {bool} [ignorePendingChanges] don't check if there are pending changes before changing page
+         * @param {number} [itemId]  Select the item with this id
+         * @param {function} [finishFunc] Execute this function when page is opened successfully
+         */
+        openDetail: function(ignorePendingChanges, itemId, finishFunc) {
+            if (ignorePendingChanges)
+                this.changePage(this.detailPage, itemId,finishFunc);
+            else
+                this.changePageIfNotPending(this.detailPage,itemId, finishFunc);
+        },
+
+        changePageIfNotPending: function(page,itemId, finishFunc) {
+            var that = this;
+            this.executeIfNotPending(function(){
+                that.changePage(page, itemId, finishFunc);
+            });
+        },
+
+        /**
+         * Selects the given itemId in the list / for edit & detail-controls
+         * @param {number} [itemId] Does nothing if no itemId given.
+         */
+        selectItem: function(itemId) {
+            if (itemId != undefined) {
+                if (itemId == -1) {
+                    this["selected" + this._itemNameUpper] = this.getNew();
+                } else {
+                    this["selected" + this._itemNameUpper] = this[this.listNameLower][this.getIdxFromId(itemId, this[this.listNameLower])];
+                }
+            }
+        },
+        updateById : function(change) {
+            if(this.listNameLower===undefined)
+                return;
+            var that = this;
+
+            if(change.path === this.listNameLower+".splices") {
+                if (change.value.indexSplices !== undefined) {
+                    $.each(change.value.indexSplices, function () {
+                        $.each(this.removed, function () {
+                            if (that[that._byIdName][this.Id] !== undefined) {
+                                that.set(that._byIdName + "." + this.Id, undefined);
+                            }
+                        });
+                        if (this.addedCount > 0) {
+                            for (var i = this.index; i < this.index + this.addedCount; i++) {
+                                var item = that[that.listNameLower][i];
+                                that.set(that._byIdName + "." + item.Id, item);
+                            }
+                        }
+                    });
+                }
+            } else if(change.path === this.listNameLower) {
+                that._updateByIdComplete(change.value);
+            }
+        },
+        _updateByIdComplete:function(newVal) {
+            if(newVal.length !== undefined && newVal.length>0) {
+                var that = this;
+                newById = {};
+                $.each(newVal, function () {
+                    newById[this.Id] = this;
+                });
+                that.set(that._byIdName, newById);
+            }
+        },
+
+        getNew: function() {
+            var editCtrl = this.$$('#'+this._itemNameLower+"Edit");
+            if (editCtrl == undefined)
+                return {};
+            return editCtrl.getNew();
+        },
+
+        /**
+         * Selects the given page, not checking for changes before
+         * @param {number} page
+         * @param {number} [itemId] Select the item with this id
+         * @param {function} [finishFunc] Call this function when page was selected
+         */
+        changePage: function(page, itemId, finishFunc) {
+            this.selectItem(itemId);
+            this.async(function() {
+                this.set("routeParams.listSelectedName",page);
+                if(typeof(page)!=="string") {
+                    console.warn("Tried to switch to integer page - that is deprecated!");
+                }
+                //this.selectedPage = page;
+                if(typeof(finishFunc) === 'function') {
+                    this.async(function(){
+                        finishFunc();
+                    });
+                }
+            });
+
+        },
+
+        /**
+         * Executes the given function when there are no pending changes,
+         * otherwise asks what to do and either save and execute, cancel and execute
+         * or do nothing
+         * @param {function} finishFunc
+         */
+        executeIfNotPending: function(finishFunc) {
+            var editCtrl = this.$$('#'+this._itemNameLower+"Edit");
+            if (editCtrl) {
+                var that = this;
+                if (that.hasPendingChange()) {
+                    var d = editCtrl.$.notsavedDialog;
+                    d.dontSaveFunc = function() {
+                        editCtrl.cancelEdit();
+                        if(typeof(finishFunc) === 'function') {
+                            finishFunc();
+                        }
+                    };
+                    d.stayFunc = null;
+                    d.saveFunc = function() {
+                        editCtrl.saveEdit();
+                        if(typeof(finishFunc) === 'function') {
+                            finishFunc();
+                        }
+                    };
+                    d.itemDesc = editCtrl.getValString();
+                    d.show();
+                } else {
+                    if(typeof(finishFunc) === 'function') {
+                        finishFunc();
+                    }
+                }
+            } else {
+                if(typeof(finishFunc) === 'function') {
+                    finishFunc();
+                }
+            }
+        },
+
+        /**
+         * Checks if there are any unsaved changes
+         * @returns {boolean}
+         */
+        hasPendingChange: function() {
+            var editCtrl = this.$$('#' + this._itemNameLower + "Edit");
+            return editCtrl && this.selectedPage && this.selectedPage == this.editPage && editCtrl.hasPendingChange && editCtrl.hasPendingChange();
+        },
+
+        /**
+         * Adds the response & error listeners to the list fetcher (iron-ajax)
+         * @private
+         */
+        _fetcherChanged: function() {
+            if (this.fetcher != undefined) {
+                var that = this;
+
+                this.fetcher.set("url",getReplacedAjaxUri(this.fetcher.url));
+                this.fetcher.addEventListener("response",
+                        function(request) {
+                            that._handleAjaxFetcherResponse(request);
+                        });
+                this.fetcher.addEventListener("error",
+                        function(e) {
+                            that._handleAjaxError(e);
+                        });
+            }
+        },
+        fetch: function() {
+            this.fetcher.generateRequest();
+        },
+        /**
+         * Handle the list fetchers response (iron-ajax)
+         * @param request
+         * @private
+         */
+        _handleAjaxFetcherResponse: function(request) {
+            console.log("Fetcher for " + this.listNameUpper + " returned !");
+            if (request.detail.response === null || request.detail.response[this.listNameUpper] === null) {
+                console.log("odl-listbehavior: Fetcher for " + this.listNameUpper +  ": Empty response");
+                return;
+            }
+            var that = this;
+            var newList = [];
+            $.each(request.detail.response[this.listNameUpper], function (i, v) {
+                if (typeof(that.initItem) === 'function') {
+                    that.initItem(v);
+                }
+                newList.push(v);
+            });
+            this.set(this.listNameLower, newList);
+        },
+
+        /**
+         * Gets the index of the item with the given id
+         * @param {number} id The id to search
+         * @param {array} arr The array to scan
+         * @returns {number}
+         */
+        getIdxFromId: function(id, arr) {
+            return getIdxFromId(id,arr);
+        },
+        abortAllRequests: function() {
+            console.log("odl-listbehavior for " + this.listNameUpper + ": abortAllRequests called");
+            if (this.fetcher != undefined && this.fetcher.activeRequests != undefined) {
+                $.each(this.fetcher.activeRequests, function () {
+                    this.abort();
+                });
+            }
+        },
+        /**
+         * Returns to default state of the list (usually displaying the list when no pending changes)
+         */
+        returnToDefaultState: function() {
+            this.openList();
+        },
+        notifyAboutChange: function(item,propertyName) {
+            if(this[this.listNameLower]) {
+                var idx = this.getIdxFromId(item.Id,this[this.listNameLower]);
+                if (idx==-1) {
+                    return;
+                }
+                var path = this.listNameLower+"."+idx;
+                if(propertyName) {
+                    path+="."+propertyName;
+                    item = item[propertyName];
+                }
+                this.notifyPath(path,item);
+            }
+        },
+        /**
+         * Handles the event from edit, delete or detail page and returns to the list overview
+         * if there are no pending changes
+         * @param event event.type = deleted, updated, created, canceled, back; event.detail.type = List object name (e.g. "car"); event.detail.updateObject = list item object
+         */
+        backToList: function(event) {
+            var checkPending = false;
+            if (!event.detail.worked && this[event.detail.type+"s"] != undefined) {
+                event.detail.worked = true; //worked = already processed this event
+
+                switch(event.type) {
+                    case "deleted":
+                    {
+                        var id = this._getIdFromEvent(event);
+                        if(id==undefined) {
+                            console.error("Could not determine id for deleted object of type "+this.listNameUpper+"!");
+                            return;
+                        }
+                        var idx = this.getIdxFromId(id, this[event.detail.type+"s"]);
+                        if (idx != -1)
+                            this.splice(event.detail.type + "s", idx, 1);
+                        break;
+                    }
+                    case "updated":
+                    {
+                        var id = this._getIdFromEvent(event);
+                        if(id==undefined) {
+                            console.error("Could not determine id for updated object of type "+this.listNameUpper+"!");
+                            return;
+                        }
+                        var obj = event.detail.updatedObject;
+                        var idx = this.getIdxFromId(id, this[event.detail.type+"s"]);
+                        if(obj==undefined) {
+                            obj = this[event.detail.type+"s"][idx];
+                        }
+                        if (idx != -1)
+                            this.set(event.detail.type + "s." + idx, obj);
+                        if(this[this._byIdName]) {
+                            this.set(this._byIdName+"."+obj.Id,obj)
+                        }
+                        break;
+                    }
+                    case "created":
+                    {
+                        var obj = event.detail.updatedObject;
+                        var idx = this.getIdxFromId(obj.Id, this[event.detail.type+"s"]);
+                        if(idx==-1)
+                            this.push(event.detail.type + "s", obj);
+                        break;
+                    }
+                    case "canceled":
+                    {
+                        break;
+                    }
+                    default : checkPending = true;
+                }
+            }
+
+            var that = this;
+            var switchPage = function(){
+                if(that.backToPage) {
+                    that.backToPage(event);
+                } else if(event.detail.previousPage) {
+                    that.async(function() {
+                        that.selectedPage = event.detail.previousPage;
+                    });
+                } else {
+                    that.set("routeParams.listSelectedName",that.listPage);
+                    that.async(function() {
+                        that.set("routeParams.selectedId",-1);
+                    });
+                }
+            };
+            if(checkPending)
+                this.executeIfNotPending(switchPage);
+            else
+                switchPage();
+        },
+        _getIdFromEvent: function(event) {
+            var id = undefined;
+            if(event.detail.updatedObject!==undefined) {
+                id = event.detail.updatedObject.Id;
+            } else if (event.detail.response!==undefined) {
+                id = event.detail.response.Id;
+            }
+            if(id==undefined && event.detail.response!==undefined && event.detail.response.Trip!==undefined) {
+                id = event.detail.response.Trip.Id;
+            }
+            return id;
+        },
+        _onPageChange:function(e,a) {
+            var lists = a.toPage.querySelectorAll("iron-list");
+            for(i=0;i<lists.length;i++) {
+                lists[i].fire("iron-resize");
+            }
+        },
+        renderLists:function(){
+            var lists = this.querySelectorAll("iron-list");
+            this.async(function() {
+                for(i=0;i<lists.length;i++) {
+                    lists[i].fire("iron-resize");
+                }
+            });
+        },
+        _handleAjaxError: function(e) {
+            handleAjaxError(e,this);
+        },
+        _searchValueChanged: function(newVal){
+            $(this).find("paper-item-body").removeClass("highlighted");
+            if(newVal=="") {
+                this.curSearchRes = [];
+                return;
+            }
+            newVal = newVal.toLowerCase();
+            var sRes = [];
+            var foundIdx = -1;
+            var that = this;
+            $.each(this[this.listNameLower],function(i,u) {
+                var desc = "";
+                if (that.getItemDesc) {
+                    desc = that.getItemDesc(dtoToDelete);
+                } else {
+                    var editCtrl = that.$$('#' + that._itemNameLower + "Edit");
+                    if (editCtrl == undefined) {
+                        console.warn("No editCtrl defined!!!");
+                    } else {
+                        if (editCtrl.getItemDesc) {
+                            desc = editCtrl.getItemDesc(u);
+                        } else {
+                            console.warn("No getItemDesc defined!!!");
+                        }
+                    }
+                }
+
+                if(desc.toLowerCase().indexOf(newVal)!==-1) {
+                    foundIdx = getIdxFromId(u.Id, that[that.listNameLower]);
+                    sRes.push(foundIdx);
+                    $(that).find("#body_" + u.Id).addClass("highlighted");
+                }
+            });
+            this.curSearchRes = sRes;
+            this.searchFocusIdx = 0;
+            this._searchFocusIdxChanged(0);
+
+        },
+        _searchBoxKeyDown: function (e) {
+            // check if 'enter' was pressed
+            if (e.keyCode === 13) {
+                // enter pressed - go to next search result!
+                this._nextSearch();
+            }
+        },
+        _prevSearch: function() {
+            this.searchFocusIdx--;
+        },
+        _nextSearch: function() {
+            this.searchFocusIdx++;
+        },
+        _getLen: function(el,curIdx) {
+            var len = el==undefined?0:el.length;
+            if (len>0 && curIdx>-1) {
+                len = (curIdx+1) + "/" + len;
+            }
+            return len;
+        },
+        _searchFocusIdxChanged: function(newVal) {
+            if(newVal <0) {
+                this.searchFocusIdx = this.curSearchRes===undefined?0:this.curSearchRes.length-1;
+                return;
+            }
+            if(this.curSearchRes!==undefined && this.curSearchRes.length>0 && newVal>-1) {
+                if(this.curSearchRes.length<newVal+1) {
+                    this.searchFocusIdx = 0;
+                    return;
+                }
+                this.$$("#"+this._itemNameLower+"IronList").scrollToIndex(this.curSearchRes[newVal]);
+            }
+        },
+    };
+    OdlBehaviors.OdlListBehavior = [OdlBehaviors.OdlBehavior,OdlBehaviors._OdlListBehavior]
+</script>

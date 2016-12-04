@@ -1,0 +1,53 @@
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<dom-module id="lazy-element">
+
+    <template>
+        <style include="odl-styles"></style>
+        <template is="dom-if" if="[[_disabled]]">
+            <span id="activator"  on-tap="_renderElement" class$="[[isClickable(disabled)]]"><content select="[activator]"></content></span>
+        </template>
+        <template is="dom-if" if="[[enabled]]">
+            <content select="[lazy]"></content>
+        </template>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "lazy-element",
+            properties: {
+                enabled: {
+                    type:Boolean,
+                    value:false
+                },
+                _disabled: {
+                    type:Boolean,
+                    computed:"_negate(enabled)"
+                },
+                disabled: Boolean
+
+            },
+            _renderElement: function() {
+                if(!this.enabled && !this.disabled) {
+                    this.enabled = true;
+                }
+                if(!this.disabled)
+                    this.async(function(){
+                        this.fire("lazy-element-enabled",this);
+                    });
+            },
+            _negate:function(b) {
+                return !b;
+            },
+            isClickable: function(disabled) {
+                if(disabled) return "";
+                return "clickable";
+            }
+        });
+    </script>
+
+</dom-module>

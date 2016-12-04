@@ -1,0 +1,59 @@
+#!/bin/bash
+set -e
+
+HTTP_PORT=${HTTP_PORT:-":4000"}
+GODOC_PORT=${GODOC_PORT:-6060}
+GITLAB_URL=${GITLAB_URL:-"http://YOURGITLABURL"}
+SMTP_HOST=${SMTP_HOST:-"YOURMAILSERVER"}
+SMTP_PORT=${SMTP_PORT:-587}
+
+# is a redis container linked?
+if [ -n "${REDIS_PORT_6379_TCP_ADDR}" ]; then
+  REDIS_HOST=${REDIS_HOST:-${REDIS_PORT_6379_TCP_ADDR}}
+  REDIS_PORT=${REDIS_PORT:-${REDIS_PORT_6379_TCP_PORT}}
+fi
+
+# fallback to default redis port
+REDIS_PORT=${REDIS_PORT:-6379}
+
+if [ -z "${REDIS_HOST}" ]; then
+  echo "ERROR: "
+  echo "  Please configure the redis connection."
+  echo "  Refer http://git.io/PMnRSw for more information."
+  echo "  Cannot continue without a redis connection. Aborting..."
+  exit 1
+fi
+
+echo "Redis Host: "${REDIS_HOST}":"${REDIS_PORT_6379_TCP_PORT}
+echo "Http PORT: "${HTTP_PORT}
+
+#use https://github.com/githubnemo/CompileDaemon to auto-rebuild
+#set path in compiledeamon
+PATH_TO_WATCH=$GOPATH"/src/github.com/OpenDriversLog/goodl"
+BUILD_CMD='echo "Building disabled"'
+#BUILD_CMD="go build -v github.com/OpenDriversLog/goodl"
+FOLLOW_CMD="go run "$PATH_TO_WATCH"/goodl.go"
+
+#if [ "$(ls -A ./vendor/github.com)" ]; then
+#   echo "seems like GoODL deps are installed. NOT running glide for GoODL"
+#else
+#   echo "vendor/github.com seems empty... installing deps..."
+#   glide install --update-vendored
+#fi
+
+glide install --update-vendored
+
+#if [ "$(ls -A ./vendor/github.com/OpenDriversLog/goodl-lib/vendor/github.com)" ]; then
+#   echo "seems like GoODL-lib deps are installed. NOT running glide for goodl-lib"
+#else
+#    echo "vendor/github.com seems empty in goodl-lib... installing deps..."
+#    cd $PATH_TO_WATCH/vendor/github.com/OpenDriversLog/goodl-lib/ && glide install --update-vendored
+#fi
+
+cd $PATH_TO_WATCH/vendor/github.com/OpenDriversLog/goodl-lib/ && glide install --update-vendored
+cd $PATH_TO_WATCH
+
+echo "install dependent packages..."
+go install ./
+echo "run the deamon..."
+/go/bin/CompileDaemon -directory="$PATH_TO_WATCH" -build="$BUILD_CMD" -recursive=true -command="$FOLLOW_CMD" -color=true -exclude-dir=tests -exclude="*test\.go"

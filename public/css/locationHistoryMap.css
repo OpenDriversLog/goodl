@@ -1,0 +1,46 @@
+html, body {
+	height: 100%;
+	overflow: hidden;
+}
+
+nav
+{
+
+}
+
+
+div#map
+{
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+}
+
+.stick {
+    position: fixed;
+    top: 0px;
+    /* _top: expression( ie6 = (document.documentElement.scrollTop + "px") ); */
+	z-index: 999999;
+}
+
+footer
+{
+	display:none;
+}
+
+.page-footer
+{	
+	display:none;
+}
+
+.datetime-select
+{
+	border-bottom: none !important;
+	text-align: center;
+	width:auto !important;
+}
+
+.modal
+{
+	max-height: 80%;
+}

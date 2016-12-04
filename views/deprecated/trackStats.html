@@ -1,0 +1,137 @@
+{[{define "key"}]}trackStats{[{end}]}
+{[{define "head"}]}
+<link rel="import" href="./public/bundledImports/layout.html">
+{[{end}]}
+{[{define "title"}]}
+{[{.T.T "someTitle"}]}
+{[{end}]}
+{[{define "navItems"}]}{[{end}]}
+{[{define "helpText"}]}
+Diese Seite zeigt Ihnen Statistiken ihres Benutzerkontos. Diese helfen Ihnen und uns dabei häufig besuchte Orte zu identifizieren und korrekt in Ihr Fahrtenbuch einzutragen. Dieser Bereich befindet sich allerdings noch in Entwicklung.
+{[{end}]}
+{[{define "content"}]}
+<paper-card elevation="2" class="odl-secondary">
+
+    <div class="card-content">
+
+        <div class="card-title"> Ihre Statistiken</div>
+        <table class="odl-primary">
+            <tbody>
+
+            <tr><td style="text-align: right;"> <strong> current Db Version: </strong> </td><td> {[{.Data.DbVersion}]}</td></tr>
+
+            <tr><td style="text-align: right;"> <strong> numb Of Devices: </strong> </td><td> {[{.Data.CDevices}]}</td></tr>
+            <tr><td style="text-align: right;"> <strong> numb Of TrackRecords: </strong> </td><td> {[{.Data.CTrackRecords}]}</td></tr>
+            <tr><td style="text-align: right;"> <strong> numb Of Tracks: </strong> </td><td> {[{.Data.CTracks}]}</td></tr>
+            <tr><td style="text-align: right;"> <strong> numb Of KeyPoints: </strong> </td><td> {[{.Data.CKeyPoints}]}</td></tr>
+            {[{if .Data.User}]}
+            <tr><td style="text-align: right;"> <strong> Nutzeridentifikationsnummer: </strong> </td><td> {[{.Data.User.Id}]}</td></tr>
+            <tr><td style="text-align: right;"> <strong> Nutzerkonto: </strong> </td><td> {[{.Data.User.LoginName}]}</td></tr>
+            {[{end}]}
+        </table>
+    </div>
+    </div>
+</paper-card>
+{[{end}]}
+{[{define "bottomBody"}]}
+<!-- include javascript code here -->
+<script src="./public/js/jquery-dateformat.js" type="text/javascript"></script>
+<script src="./public/js/simple-dt/jquery.simple-dtpicker.js" type="text/javascript"></script>
+<script type="text/javascript">
+    function initTracks(trackInfo) {
+        var dateFormat = "dd.MM.yyyy HH:mm";
+        var timeFormat = "HH:mm";
+
+        var trackColl = $('#trackCollection');
+        var collItemHtml = [];
+
+        var parsed = [];
+
+        parsed["device"] = trackInfo["properties"]["device"];
+        parsed["track"] = trackInfo["properties"]["track"];
+
+
+        for (var i = 0; i < trackInfo["features"].length; i++) {
+            var f = trackInfo["features"][i];
+
+            switch (f["id"]) {
+                case "StartKeyPoint":
+                    parsed["start"] =  [];
+                    parsed["start"]["c"] = f["properties"]["City"];
+                    parsed["start"]["p"] = f["properties"]["Postal"];
+                    parsed["start"]["s"] = f["properties"]["Street"];
+                    parsed["start"]["t"] = f["properties"]["MaxTime"];
+                    break;
+                case "EndKeyPoint":
+                    parsed["end"] =  [];
+                    parsed["end"]["c"] = f["properties"]["City"];
+                    parsed["end"]["p"] = f["properties"]["Postal"];
+                    parsed["end"]["s"] = f["properties"]["Street"];
+                    parsed["end"]["t"] = f["properties"]["MinTime"];
+                    break;
+                default:
+                    parsed["err"] = "nothing found";
+                    break;
+            }
+        }
+
+        collItemHtml.push(
+                '<tr><td><a href="#'+parsed["track"]+'" onclick="loadPoints('+parsed["track"]+')">Trackid: ', parsed["track"], "</a></td><td>",
+                parsed["start"]["p"], "</td> <td>", parsed["start"]["c"], "</td><td>", parsed["start"]["s"],  "  ",
+                jQuery.format.date(new Date(parsed["start"]["t"]), dateFormat), " - ",jQuery.format.date(new Date(parsed["end"]["t"]), timeFormat), "</td></tr>"
+        );
+
+        trackColl.append(collItemHtml.join(""));
+    };
+
+    appReady(app,function() {
+        var dateFormat = "dd.MM.yyyy HH:mm";
+        var trackColl = $('#trackCollection');
+
+        for (var i = 1; i < 5; i++) {
+            reqData = {};
+            reqData["ajax"] = "track";
+            reqData["id"] = i;
+            console.log("getting", reqData);
+            $.ajax({
+                type: "POST",
+                url: "./jsonApi",
+                data: reqData,
+                async: true,
+                dataType: 'json',
+                success: function(result) {
+                    initTracks(result);
+                },
+                error: function(result) {
+                    console.log(result.responseText)
+                }
+            });
+        }
+
+        var deviceMapResponse = {[{.Data.DeviceMap}]};
+
+    var deviceMap = deviceMapResponse.Result;
+    var sortedDeviceTimes = [];
+
+    var devBody = $('#devTableBody');
+    var rowHtml = [];
+
+    for (var i = 0; i < deviceMap.length; i++) {
+        dev = deviceMap[i];
+        rowHtml.push(
+                "<tr><td>", dev.Id, "</td>",
+                "<td>", dev.Description, "</td>",
+                "<td>", jQuery.format.date(new Date(dev.MinTime), dateFormat), "</td>",
+                "<td>", jQuery.format.date(new Date(dev.MaxTime), dateFormat), "</td><tr>"
+        );
+
+        devBody.html(rowHtml.join(""));
+
+    }
+    });
+
+    appReady(app,function() {
+    });
+
+</script>
+{[{end}]}

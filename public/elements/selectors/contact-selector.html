@@ -1,0 +1,176 @@
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../helpers/address-helper.html">
+<link rel="import" href="../behaviors/odl-selectorbehavior.html">
+<dom-module id="contact-selector">
+    <template>
+        <style include="odl-styles">
+            :host([invalid]) paper-dropdown-menu {
+                border: dotted red;
+            }
+        </style>
+        <style>
+            .hidden {
+                display:none;
+            }
+            paper-material {
+                width: 99%;
+            }
+            .contact-disabled {
+                background-color:#DDDDDD;
+            }
+            .smallMenu {
+                width:20px;
+            }
+
+            #contactSelector.smallMenu .underline {
+                display:none;
+            }
+            #contactSelector.smallMenu {
+                --paper-dropdown-menu: {
+                    height:0px;
+                    padding:0;
+                };
+                --paper-dropdown-menu-disabled: {
+                    height:0px;
+                    padding:0;
+                };
+                --paper-dropdown-menu-ripple: {
+                    height:0px;
+                    padding:0;
+                };
+                --paper-dropdown-menu-button: {
+                    height:0px;
+                    padding:0;
+                };
+                --paper-dropdown-menu-input: {
+                    height:0px;
+                    padding:0;
+                };
+
+                --paper-dropdown-menu-icon: {
+                    height:15px;
+                    padding:0;
+                };
+            }
+
+        </style>
+        <paper-dropdown-menu horizontal-align="left" id="contactSelector"
+                             label="[[label]]" always-float-label
+                             class$="{{_smallClass(small)}}" no-label-float="[[noLabel]]"
+                             on-tap="_tapDropdown" disabled="[[disabled]]"
+        >
+            <paper-menu id="contactMenu" attr-for-selected="contact-id"
+                        selected="{{selectedId}}" class="dropdown-content">
+                <paper-item contact-id="-1"> - </paper-item>
+                <div hidden$="{{createDisabled}}">
+                    <paper-item contact-id="0" on-tap="_createNew">
+                        <paper-item-body two-line>
+                            <div>Neuen Kontakt anlegen für:</div>
+                            <div>[[formatAddress(newContactAddress)]]</div>
+                        </paper-item-body>
+                    </paper-item>
+                </div>
+                <template is="dom-repeat" items="[[contacts]]" as="c">
+                    <paper-item on-tap="_tapped" class$="[[_getContactClass(c,hideOldContacts)]]" contact-id$="[[c.Id]]">
+                        <paper-item-body two-line>
+                            <div>[[c.Title]]</div>
+                            <div>[[formatAddress(c.Address)]]</div>
+                        </paper-item-body>
+                        <paper-tooltip position="top">[[_getTooltip(c)]]</paper-tooltip>
+                    </paper-item>
+                </template>
+            </paper-menu>
+        </paper-dropdown-menu>
+    </template>
+
+    <script>
+        Polymer({
+            is: "contact-selector",
+            behaviors: [
+                OdlBehaviors.OdlSelectorBehavior
+            ],
+            properties: {
+                newContactAddress: Object,
+                contacts: {
+                    type: Array,
+                    value: [],
+                    observer:"_itemsChanged"
+                },
+                contactsById: {
+                    type: Object,
+                    value: {}
+                },
+                createDisabled: Boolean,
+                selectedContact: {
+                    type: Object,
+                    value: {},
+                    notify:true,
+                    observer:"_selectedChanged"
+                },
+                small: Boolean,
+                noLabel: {
+                    type:Boolean,
+                    computed:"isEmpty(label)"
+                },
+                label:{
+                    type:String,
+                    value:""
+                },
+                disabled:Boolean,
+                hideOldContacts:Boolean
+            },
+            observers: [
+                '_selectedIdChanged(contactsById.*)'
+            ],
+            ready: function() {
+                this.upperItemName="Contact";
+                this.lowerItemName="contact";
+            },
+            attached: function() {
+                this.fire("attached",this);
+            },
+            isEmpty:function(str) {
+                return str == undefined || str=="";
+            },
+            _getContactClass: function(contact,hideOldContacts) {
+                if(contact.Disabled!=0) {
+                    if(hideOldContacts) return "hidden";
+                    return "contact-disabled";
+                };
+                return ""
+            },
+            _getTooltip: function(contact) {
+                if(contact.Disabled!=0) return "Dieser Kontakt steht in einer abgeänderten Variante zur Verfügung";
+                return ""
+            },
+            formatAddress: function(a) {
+                return formatAddress(a);
+            },
+            _tapped: function(e) {
+                this.fire("tapped");
+                this.async(function(){
+                    this.$.contactSelector.close();
+                });
+            },
+            _smallClass: function(small) {
+                if(small) return "smallMenu";
+                return "";
+            },
+            // https://github.com/PolymerElements/iron-list/issues/207#event-566751826
+            _tapDropdown: function(event) {
+                event.stopPropagation();
+            },
+            open: function() {
+                this.$.contactSelector.open();
+            },
+            close: function() {
+                this.$.contactSelector.close();
+            }
+
+        });
+    </script>
+
+</dom-module>

@@ -1,0 +1,277 @@
+<link rel="import" href="../../components/polymer/polymer.html">
+<link rel="import" href="../../components/leaflet-map/leaflet-map.html">
+<link rel="import" href="geo-zone.html">
+<script src="../../components/Leaflet.MakiMarkers/Leaflet.MakiMarkers.js" type="text/javascript"></script>
+<dom-module id="contact-map-item">
+
+    <template>
+
+        <template is="dom-if" if="[[notHidden]]">
+            <leaflet-marker opacity="[[getOpacity(contact)]]" additional-options="{{additionalOptions}}" id="m" style="display:none" container="{{container}}" latitude="{{contact.Address.Latitude}}" longitude="{{contact.Address.Longitude}}" icon="{{getContactIcon(contact)}}"></leaflet-marker>
+            <template is="dom-repeat" items="{{contact.Address.GeoZones}}" as="geoZone">
+                <geo-zone opacity="[[getOpacity(contact,hideOldContacts)]]" container="{{container}}" contact="{{contact}}" geo-zone="{{geoZone}}">Unbekannt</geo-zone>
+
+            </template>
+        </template>
+    </template>
+
+    <script>
+
+        function closePopup(id) {
+            // hrhr this is so evil
+            $('#'+id).parents('.leaflet-popup').find('a[href="#close"]:first')[0].click();
+        }
+        function getContactHTML(contact, dontEdit,kpId) {
+            var id="contactPopup"+contact.Id;
+            if(contact==undefined) return "Unbekannt";
+            var t = "<div id='"+id+"'><b>"+contact.Title + (contact.Disabled?" (Alt)":"") +"</b><br/>"+
+                    "<i>";
+            switch(contact.TripType) {
+                case 1: {
+                    t += "Privat";
+                    break;
+                }
+                case 2: {
+                    t += "Arbeitsweg";
+                    break;
+                }
+                case 3: {
+                    t += "Dienstlich";
+                    break;
+                }
+                default: {
+                    t += "Wohnort";
+                    break;
+                }
+            }
+            t += "</i><br/>"+
+                    contact.Address.Street + " " + contact.Address.HouseNumber + ", " +
+                    contact.Address.Postal + " " + contact.Address.City;
+
+            if(!dontEdit) {
+                t += "<br/><a href='javascript:closePopup(\""+id+"\");editContact("+contact.Id+")'>Kontakt bearbeiten</a>";
+                t += "<br/><a href='javascript:closePopup(\""+id+"\");moveContact("+contact.Id+")'>Kontakt verschieben</a>";
+
+            }
+            if(kpId) {
+                t += "<br/><a href='javascript:closePopup(\""+id+"\");editTripWithEndKp("+kpId+")')>Vorhergehende Fahrt bearbeiten</a>";
+                t += "<br/><a href='javascript:closePopup(\""+id+"\");editTripWithStartKp("+kpId+")')>Folgende Fahrt bearbeiten</a>";
+            }
+            return t + "</div>";
+        }
+
+        function getAddressHTML(address, dontCreate,noHTMLNoTitle,tripId,isStartKP,kpId,isBreak) {
+            var id="addressPopup"+address.Id;
+            var t = (noHTMLNoTitle?"":"<div id='"+id+"'><b>"+address.Title + "</b><br/>") +
+                    address.Street + " " + address.HouseNumber + ", " +
+                    address.Postal + " " + address.City;
+            if(!dontCreate) {
+                t += "<br/><a href='javascript:closePopup(\""+id+"\");createContact("+JSON.stringify(address).replace(/\n/g,"")+")')>Kontakt hier erstellen</a>";
+
+                if (tripId!==undefined) {
+                    if(!isBreak) {
+                        t += "<br/><a href='javascript:closePopup(\""+id+"\");ignoreStop("+tripId+","+(isStartKP?"true":"false")+")')>Diesen Zwischenstop ignorieren</a>";
+                        if(kpId) {
+                            t += "<br/><a href='javascript:closePopup(\""+id+"\");editTripWithEndKp("+kpId+")')>Vorhergehende Fahrt bearbeiten</a>";
+                            t += "<br/><a href='javascript:closePopup(\""+id+"\");editTripWithStartKp("+kpId+")')>Folgende Fahrt bearbeiten</a>";
+                        }
+                    } else {
+                        t += "<br/><a href='javascript:closePopup(\""+id+"\");editTrip("+tripId+")')>Fahrt bearbeiten</a>";
+                    }
+                }
+
+            }
+            return t +(noHTMLNoTitle?"":"</div>");
+        }
+
+        Polymer({
+            is: "contact-map-item",
+            properties: {
+                contact: {
+                    type: Object,
+                    value: {},
+                    observer: "_contactChanged"
+                },
+                privateIcon: {
+                    type: Object,
+                    value: undefined
+                },
+                commuteIcon: {
+                    type: Object,
+                    value: undefined
+                },
+                businessIcon: {
+                    type: Object,
+                    value: undefined
+                },
+                homeIcon: {
+                    type: Object,
+                    value: undefined
+                },
+                editableItems: { // do not name this container, leaflet-map is evil and overwriting it :>
+                    type:Object,
+                    value:undefined,
+                    notify:true
+                },
+                container: { // do not name this container, leaflet-map is evil and overwriting it :>
+                    type:Object,
+                    value:undefined,
+                    notify:true
+                },
+                additionalOptions: {
+                    type:Object,
+                    computed:'getOptions(contact)'
+                },
+                hideOldContacts: Boolean,
+                notHidden: {
+                    type:Boolean,
+                    computed:"_notHidden(contact,hideOldContacts)",
+                    observer: "_notHiddenChanged"
+                }
+            },
+            _notHiddenChanged : function(newVal,oldVal) {
+                var m = this.$$("#m");
+                if(m) {
+                    if(!newVal && m.feature) {
+                        this.container.removeLayer(m.feature);
+                        var that = this;
+                        $.each(this.querySelectorAll('geo-zone'),function(){
+                            that.container.removeLayer(this.$$("#rect").feature);
+                        });
+                    } else {
+                        if(!oldVal && oldVal!==undefined && this.$$("#m") && m.feature) {
+                            var that = this;
+                            this.container.addLayer(m.feature);
+                            $.each(this.querySelectorAll('geo-zone'),function(){
+                                that.container.addLayer(this.$$("#rect").feature);
+                            });
+                        }
+                    }
+                }
+            },
+            getOpacity: function(contact) {
+                return contact.Disabled>0?0.6:1.0;
+            },
+            startMove: function() {
+                this.set('contact.highlighted',true);
+                this.editableItems.clearLayers();
+                this.container.removeLayer(this.$$("#m").feature);
+                this.$$("#m").feature.addTo(this.editableItems);
+                var that = this;
+                $.each(this.querySelectorAll('geo-zone'),function(){
+                    that.container.removeLayer(this.$.rect.feature);
+                    this.$.rect.feature.addTo(that.editableItems);
+                });
+                $('.leaflet-draw-edit-edit')[0].click();
+            },
+            endMove:function() {
+                this.editableItems.clearLayers();
+                this.$$("#m").feature.addTo(this.container);
+                var that = this;
+                $.each(this.querySelectorAll('geo-zone'),function(){
+                    this.$.rect.feature.addTo(that.container);
+                });
+            },
+            observers:[
+                'highlightChanged(contact.highlighted)'
+            ],
+            highlightChanged: function (newVal) {
+                if(newVal!==undefined && this.$$("#m") && map)
+                {
+                    this.$$("#m").icon = this.getContactIcon(this.contact,true);
+                    if(this.contact.Address.Latitude!=0) {
+                        var zoom = polyMap.zoom;
+                        if (zoom<10) zoom = 10;
+                        map.setView([this.contact.Address.Latitude, this.contact.Address.Longitude], zoom);
+                    }
+                }
+                this.notifyPath("contact.highlighted",this.contact.highlighted,true);
+            },
+            getOptions:function(contact) {
+                return {contact:contact
+                };
+            },
+            _notHidden : function(contact,hideOldContacts) {
+                return !contact.Disabled || !hideOldContacts
+            },
+            getContactIcon: function(contact, update) {
+                var color = contact.highlighted?"#ff6f00":"#01579B";
+                color = contact.Disabled?"#aaaaaa":color;
+                if(this.privateIcon == undefined || update) {
+                    this.privateIcon = L.MakiMarkers.icon({
+                        icon: "building",
+                        color: color,
+                        size: "s"
+                    });
+                }
+                if(this.commuteIcon == undefined || update) {
+                    this.commuteIcon = L.MakiMarkers.icon({
+                        icon: "shop",
+                        color: color,
+                        size: "s"
+                    });
+                }
+                if(this.businessIcon == undefined || update) {
+                    this.businessIcon = L.MakiMarkers.icon({
+                        icon: "commercial",
+                        color: color,
+                        size: "s"
+                    });
+                }
+                if(this.homeIcon == undefined  || update) {
+                    this.homeIcon = L.MakiMarkers.icon({
+                        icon: "lodging",
+                        color: color,
+                        size: "s"
+                    });
+                }
+                switch(contact.TripType) {
+                    case 1: {
+                        return this.privateIcon;
+                    }
+                    case 2: {
+                        return this.commuteIcon;
+                    }
+                    case 3: {
+                        return this.businessIcon;
+                    }
+                    default: {
+                        return this.homeIcon;
+                    }
+                }
+            },
+            _getContactHTML: function() {
+                return getContactHTML(this.contact);
+            },
+            _contactChanged: function() {
+                var that = this;
+                var m = this.$$("#m");
+                if(!m) {
+                    if(!this.contact.Disabled || !this.hideOldContacts)
+                        window.setTimeout(function () {
+                            that._contactChanged()
+                        }, 1000);
+                    return;
+                }
+
+
+                var chtml = getContactHTML(this.contact);
+                m.innerHTML = chtml;
+                this.async(function() {
+                    $.each(
+                            that.querySelectorAll('geo-zone'), function() {
+                                Polymer.dom(this).innerHTML = chtml;
+                            });
+                });
+
+            },
+            detached: function() {
+                $.each(this.querySelectorAll('geo-zone'),function(){
+                    this.detached();
+                });
+            }
+        });
+
+    </script>
+
+</dom-module>

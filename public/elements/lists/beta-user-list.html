@@ -1,0 +1,212 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-badge/paper-badge.html">
+
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../../components/neon-animation/neon-animated-pages.html">
+
+<link rel="import" href="../edits/beta-user-edit.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+
+
+<dom-module id="beta-user-list">
+
+    <template>
+        <carbon-route id="betaUsersRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+
+        <style include="odl-styles"></style>
+        <style include="list-styles"></style>
+
+        <iron-ajax id="ajaxBetaUserFetcher"
+                   url="../../../betaMan"
+                   params='{ "action": "read" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" on-neon-animation-finish="_onPageChange"
+                             id="betaUsers_pages" class="fit" selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+        >
+            <!-- Start page 0 / list -->
+
+            <div name="list" route="betaUserList" class="betaUserList vertical layout fit">
+                <paper-toolbar>
+                    <span class="title">BetaUser</span>
+                    <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                    <paper-icon-button id="newBetaUserBtn" icon="icons:add-circle" title="neues BetaUser" on-tap="_new" >+
+                    </paper-icon-button>
+                    <div class="horizontal layout searchBar">
+                        <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                        <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaUserBox"></paper-badge>
+                        <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                        </paper-icon-button>
+                        <paper-icon-button  icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                        </paper-icon-button>
+                    </div>
+                </paper-toolbar>
+
+                <paper-material elevation="2" class="vertical layout flex">
+                    <iron-selector id="betaUserlistMenu" attr-for-selected="betaUserid" selected="{{selected}}">
+                        <iron-list id="betaUserIronList" items="{{betaUsers}}" as="betaUser" class="vertical layout fit">
+                            <template>
+                                <div class="list-item" betaUserid="{{betaUser.Id}}">
+                                    <paper-icon-item  id="item_[[betaUser.Id]]">
+                                        <iron-icon icon="icons:accessibility" title="BetaUser" on-tap="toggleSelected" betaUser="[[betaUser]]" style$="{{getBgColor(betaUser.selected)}}" item-icon></iron-icon>
+                                        <paper-item-body id="body_[[betaUser.Id]]">
+                                            <div class="title">
+                                                <span>[[betaUser.Anrede]]</span> <span>[[betaUser.Vorname]]</span> <span>[[betaUser.Name]]</span>
+                                            </div>
+                                            <div class="thin">[[betaUser.Email]]</div>
+                                            <div class="thin"><paper-checkbox checked="{{isBool(betaUser.Wants2BePilot)}}" disabled>Pilot</paper-checkbox><paper-checkbox disabled checked="{{isBool(betaUser.WantsNewsletter)}}">Newsletter</paper-checkbox></div>
+                                        </paper-item-body>
+                                        <span secondary>
+                                            <paper-icon-button mini icon="icons:delete" on-tap="_delete" betaUser="[[betaUser]]" title="Löschen"></paper-icon-button>
+                                            <paper-icon-button mini icon="icons:create" on-tap="_edit" betaUser="[[betaUser]]" title="Bearbeiten"></paper-icon-button>
+                                        </span>
+                                    </paper-icon-item>
+
+                                </div>
+                            </template>
+                        </iron-list>
+                    </iron-selector>
+                </paper-material>
+
+            </div>
+
+            <!-- Start page 1 / edit BetaUser -->
+            <neon-animatable name="edit" route="betaUserEdit">
+                <beta-user-edit class$="[[ifTrue(isMobile,'mobile','desktop')]]"
+                                loading="{{loading}}" id="betaUserEdit" beta-user="{{selectedBetaUser}}"
+                                on-back="backToList" on-deleted="_deleted" on-canceled="backToList" on-created="_created"
+                                on-updated="backToList"></beta-user-edit>
+            </neon-animatable>
+        </neon-animated-pages>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "beta-user-list",
+
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                betaUsers: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                withSelector: {
+                    type:Boolean,
+                    value:false
+                },
+                drivers: {
+                    type:Array,
+                    value: [],
+                    notify:true
+                },
+                selectedBetaUser: {
+                    type: Object,
+                    notify: true
+                },
+                selected: {
+                    type: String,
+                    observer: '_selectedChanged',
+                    notify: true
+                },
+                map: Object
+            },
+            isBool:function(b) {
+                if(b<1) return false;
+                else return true;
+            },
+            getBgColor:function(isSelected) {
+                return this.withSelector?((isSelected?"background-color:green":"background-color:grey")+";cursor:pointer;"):"";
+            },
+            toggleSelected: function(event) {
+                if(this.withSelector) {
+                    var usr = event.model!=null ? event.model.betaUser : event.detail.betaUser;;
+                    usr.selected = !usr.selected;
+                    this.notifyAboutChange(usr,"selected");
+                }
+            },
+            animationConfig: {
+                type: Object,
+                value: function() {
+                    return {
+                        'entry': [{
+                            name: 'fade-in-animation',
+                            node: this.$.betaUserList
+                        }],
+                        'exit': [{
+                            name: 'fade-out-animation',
+                            node: this.$.betaUserList
+                        }, {
+                            name: 'hero-animation',
+                            id: 'hero',
+                            fromPage: this
+                        }]
+                    };
+                }
+            },
+            _getHighlightedClass:function(highlighted) {
+                return highlighted?"highlighted":"";
+            },
+            _selectedChanged: function(newValue, oldValue) {
+                var idx = this.getIdxFromId(this.selected,this.betaUsers);
+                this.fire('betaUsers-clicked', {
+                    betaUser: this.betaUsers[idx]
+                });
+            },
+            _created:function(a,b,c) {
+                this.backToList(a,b,c);
+                this.async(function() {
+                    this.$.betaUserIronList._render();
+                },200);
+            },
+            _deleted:function(a,b,c) {
+                this.backToList(a,b,c);
+                this.async(function(){
+                    this.$.betaUserIronList._render();
+                },200);
+            },
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "betaUsers";
+                this.listNameUpper = "BetaUsers";
+                this.fetcher = this.$.ajaxBetaUserFetcher;
+                this.$.ajaxBetaUserFetcher.generateRequest();
+                this.listSelectedName="list";
+
+            }
+
+        });
+    </script>
+
+</dom-module>

@@ -1,0 +1,186 @@
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+
+<dom-module id="tutorial-step">
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            .activeClick {
+                cursor:pointer;
+                color:#FFCC00;
+            }
+            .inActiveClick {
+                color:#aaaaaa;
+            }
+            .hidden {
+                display:none;
+            }
+
+            paper-toast {
+                right:1px;
+                left:auto;
+                width:300px;
+            }
+        </style>
+        <paper-toast id="stepToast" duration="0">
+            <iron-icon class$="{{_getDisabledClass(prevDisabled)}}" icon="icons:arrow-back" on-tap="_fireBack"></iron-icon>
+            <iron-icon class$="{{_getDisabledClass(nextDisabled)}}" icon="icons:arrow-forward" on-tap="_fireForward"></iron-icon>
+            <paper-icon-button class="right" icon="icons:close" on-tap="close" style="float:right;">x
+            </paper-icon-button>
+            <br/>
+            <content></content>
+            <br/><paper-button class="right" on-tap="disableTutorial" style="float:right;">{{disableText}}
+        </paper-button>
+        </paper-toast>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "tutorial-step",
+            properties: {
+                postCondition : {
+                    type: Boolean
+                },
+                preCondition:  {
+                    type: Boolean
+                },
+                visible : {
+                    type:Boolean,
+                    observer:"_visibleChanged"
+                },
+                isMilestone : {
+                    type:Boolean
+                },
+                active: {
+                    type:Boolean,
+                    computed:"_getActive(preCondition, postCondition)",
+                    observer:"_activeChanged"
+                },
+                stepIdx : {
+                    type:Number,
+                    value:-1
+                },
+                previousStep: {
+                    type: Object,
+                    value: undefined
+                },
+                nextStep : {
+                    type:Object,
+                    value:undefined
+                },
+                done:{type:Boolean, value : false},
+                highlightedItem: {
+                    type:String,
+                    value:""
+                },
+                disableText: String,
+                nextDisabled: Boolean,
+                prevDisabled: Boolean
+            },
+            _getGotoStepClass: function(step) {
+                if (step != undefined && step.done) {
+                    return "activeClick";
+                }
+                return "inActiveClick";
+            },
+            _fireBack: function() {
+                this.fire("back",{stepIdx:this.stepIdx});
+            },
+            _fireForward: function() {
+                this.fire("forward",{stepIdx:this.stepIdx});
+            },
+            _activeChanged: function(newVal, oldVal) {
+                if (oldVal && !newVal) {
+                    this.fire("deactivate",{stepIdx:this.stepIdx});
+                } else if(newVal && (oldVal==undefined || oldVal == false)) {
+                    this.fire("activate",{stepIdx:this.stepIdx});
+                }
+            },
+            _getColor: function(postCondition) {
+                if(postCondition) return "#FFCC00";
+                return "#AAAAAA";
+            },
+            _getActive: function(preCondition, postCondition) {
+                return preCondition && !postCondition;
+            },_visibleChanged: function(newVal,oldVal) {
+                if (newVal) {
+                    if (this.highlightedItem != "") {
+                        this._highlight(newVal, oldVal);
+                    }
+                    this.async(function () {
+                        this.$.stepToast.open();
+                        this.fire("opened");
+                        console.log("Step " + this.stepIdx + " opened ");
+                    }, 500);
+
+                } else {
+                    if (this.highlightedItem != "") {
+                        this._highlight(newVal, oldVal);
+                    }
+                    this.$.stepToast.close();
+                    this.fire("closed");
+                    console.log("Step " + this.stepIdx + " closed ");
+
+                }
+            },
+            close : function() {
+                this.visible = false;
+            },
+            disableTutorial: function() {
+                this.fire("disable-tutorial");
+            },
+            _highlight:function(newVisible,oldVisible) {
+                if(this.highlightedItem) {
+                    if(this.visible) {
+                        var its = $(this.highlightedItem);
+                        if (its.length < 1) {
+                            this.async(function () {
+                                this._highlight(newVisible, oldVisible);
+                            }, 500);
+                            return;
+                        }
+                        var visibleCount = 0;
+                        its.each(function (i, v) {
+                            v = $(v);
+                            if(v && v.is(":visible")) {
+                                v.toggleClass("active-tutorial-highlighted", true);
+                                visibleCount++;
+                            }
+                        });
+                        if(visibleCount==0) {
+                            this.async(function () {
+                                this._highlight(newVisible, oldVisible);
+                            }, 500);
+                        }
+                    } else {
+                        var its = $(this.highlightedItem);
+                        if (its.length < 1) {
+                            this.async(function () {
+                                this._highlight(newVisible, oldVisible);
+                            }, 500);
+                            return;
+                        }
+                        var visibleCount = 0;
+                        its.each(function (i, v) {
+                            v = $(v);
+                            if(v && v.is(":visible")) {
+                                v.toggleClass("active-tutorial-highlighted", false);
+                                visibleCount++;
+                            }
+                        });
+                        if(visibleCount==0) {
+                            this.async(function () {
+                                this._highlight(newVisible, oldVisible);
+                            }, 500);
+                        }
+                    }
+                }
+            },
+            _getDisabledClass: function(disabled) {
+                if(disabled) return "inActiveClick";
+                return "clickable";
+            }
+        });
+    </script>
+</dom-module>

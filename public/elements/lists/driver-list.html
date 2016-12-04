@@ -1,0 +1,191 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+
+<link rel="import" href="../edits/driver-edit.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+
+<dom-module id="driver-list">
+
+    <template>
+        <carbon-route id="driversRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+        <style include="list-styles"></style>
+        <style include="odl-styles"></style>
+
+
+        <iron-ajax id="ajaxDriverFetcher"
+                   url="../../../driverMan"
+                   params='{ "action": "read" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" on-neon-animation-finish="_onPageChange" id="drivers_pages" class="fit"
+                             on-neon-animation-finish="_onPageChange" class="fit"
+                             selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+                             selected-item="{{selectedPage}}"
+                             entry-animation="fade-in-animation"
+                             exit-animation="fade-out-animation">
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" entry-animation="fade-in-animation" exit-animation="fade-out-animation" class="lhm-tab-animation">
+                <div class="vertical layout fit">
+                    <paper-toolbar>
+                        <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                        <span class="title">Fahrer</span>
+                        <div class="horizontal layout searchBar">
+                            <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                            <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaUserBox"></paper-badge>
+                            <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                            </paper-icon-button>
+                            <paper-icon-button  icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                            </paper-icon-button>
+                        </div>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="newDriverBtn" icon="social:person-add" title="neuer Fahrer" on-tap="_new" >+
+                        </paper-icon-button>
+                    </paper-toolbar>
+
+                    <paper-material elevation="2" class="vertical layout flex">
+                        <iron-selector id="driverlistMenu" attr-for-selected="driverid" selected="{{selected}}">
+                            <iron-list id="driverIronList" items="{{drivers}}" as="driver" class="vertical layout fit">
+                                <template>
+                                    <div class="list-item" driverid="{{driver.Id}}">
+                                        <paper-icon-item id="item_[[driver.Id]]">
+                                            <iron-icon icon="notification:airline-seat-recline-normal" title="Fahrer" item-icon></iron-icon>
+                                            <paper-item-body id="body_[[driver.Id]]"  on-tap="showDetails">
+                                                <div class="title">[[driver.Name]]</div>
+                                                <span class="thin"><span>[[driver.Address.Postal]]</span> <span>[[driver.Address.City]]</span></span>
+                                                <span class="thin"><span>[[driver.Address.Street]]</span> <span>[[driver.Address.HouseNumber]]</span></span>
+                                            </paper-item-body>
+                                        <span secondary>
+                                            <paper-icon-button mini icon="icons:delete" on-tap="_delete" driver="[[driver]]" title="Löschen"></paper-icon-button>
+                                            <paper-icon-button mini icon="icons:create" on-tap="_edit" driver="[[driver]]" title="Bearbeiten"></paper-icon-button>
+                                        </span>
+                                        </paper-icon-item>
+                                    </div>
+                                </template>
+                            </iron-list>
+                        </iron-selector>
+                    </paper-material>
+                </div>
+            </neon-animatable>
+            <!-- Start page 1 / edit Driver -->
+            <neon-animatable name="edit" class="lhm-tab-animation">
+                <driver-edit hide-old-contacts="[[hideOldContacts]]"
+                             class$="[[ifTrue(isMobile,'mobile','desktop')]]"
+                             id="driverEdit"
+                             contacts="{{contacts}}"
+                             contacts-by-id="{{contactsById}}"
+                             loading="{{editLoading}}"
+                             id="driverEdit"
+                             driver="{{selectedDriver}}"
+                             on-back="backToList"
+                             on-deleted="backToList"
+                             on-canceled="backToList"
+                             on-created="backToList"
+                             on-updated="backToList"></driver-edit>
+            </neon-animatable>
+
+        </neon-animated-pages>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "driver-list",
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                drivers: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                driversById: {
+                    type:Object,
+                    notify:true,
+                    value:{}
+                },
+                selectedDriver: {
+                    type: Object,
+                    notify: true
+                },
+                selected: {
+                    type: String,
+                    observer: '_selectedChanged',
+                    notify: true
+                },
+                contacts: {
+                    type:Array,
+                    value:[]
+                },
+                contactsById: {
+                    type:Object,
+                    value:{}
+                },
+                hideOldContacts: Boolean,
+                map: Object
+            },
+            observers:[
+                "updateById(drivers.*)"
+            ],
+            animationConfig: {
+                type: Object,
+                value: function() {
+                    return {
+                        'entry': [{
+                            name: 'fade-in-animation',
+                            node: this.$.driverList
+                        }],
+                        'exit': [{
+                            name: 'fade-out-animation',
+                            node: this.$.driverList
+                        }, {
+                            name: 'hero-animation',
+                            id: 'hero',
+                            fromPage: this
+                        }]
+                    };
+                }
+            },
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "drivers";
+                this.listNameUpper = "Drivers";
+                this.ironList = this.$$("#driverIronList");
+                this.mobileIronList = this.$$("#mobileDriverIronList");
+
+                this.fetcher = this.$.ajaxDriverFetcher;
+                this.$.ajaxDriverFetcher.generateRequest();
+            }
+
+        });
+    </script>
+
+</dom-module>

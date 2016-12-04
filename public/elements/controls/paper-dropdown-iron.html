@@ -1,0 +1,81 @@
+<!-- 
+Source : https://gist.github.com/tbone587/f5ec964fddc388bae85a
+https://github.com/PolymerElements/iron-list/issues/158
+-->
+<link rel="import" href="../../components/polymer/polymer.html">
+<link rel="import" href="../../components/paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<dom-module id="paper-dropdown-iron">
+    <style>
+        :host{
+            display: inline-block;
+        }
+        .dropdown-content > ::content paper-item{
+            cursor: pointer;
+        }
+        /** This was added to restore functionality of menu hovering after appending to body **/
+        .dropdown-content > ::content paper-item:hover{
+            background-color: #cccccc;
+        }
+
+    </style>
+    <template>
+        <paper-menu-button vertical-align="[[verticalAlign]]" horizontal-align="[[horizontalAlign]]">
+            <paper-icon-button
+                    icon="[[icon]]"
+                    class="dropdown-trigger"
+                    alt="menu">
+            </paper-icon-button>
+            <paper-menu class="dropdown-content">
+                <content></content>
+            </paper-menu>
+        </paper-menu-button>
+    </template>
+
+    <script>
+
+        PaperDropDownIron =
+                Polymer({
+                    is: "paper-dropdown-iron",
+
+                    // Element Properties
+                    properties: {
+                        icon:{
+                            type: String,
+                            value: "icons:more-vert"
+                        },
+
+                        verticalAlign:{
+                            type: String,
+                            value: "top"
+                        },
+                        horizontalAlign:{
+                            type: String,
+                            value: "right"
+                        },
+                        ironDropDown:{
+                            type: Object,
+                            value: function(){ return {} }
+                        }
+                    },
+
+                    attached: function(){
+                        var $dropDown = this.$$( "paper-menu-button" ).querySelector( "iron-dropdown" );
+
+                        // Append the drop down menu to the body to force at highest stacking context.
+                        document.body.appendChild( $dropDown );
+
+                        // Store the iron drop down for quicker access later
+                        this.set( "ironDropDown", $dropDown );
+                    },
+
+                    detached: function(){
+                        // Possibly perform cleanup of elements here if needed...
+                    }
+
+                });
+
+    </script>
+
+</dom-module>

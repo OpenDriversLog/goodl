@@ -1,0 +1,15 @@
+<html>
+<head></head>
+<body>
+{[{.C.Name}]}
+{[{if .C.PreviousName}]}
+({[{.C.T.T "previously"}]} : {[{.C.PreviousName}]})
+{[{end}]}, <br/>
+{[{.HTML "editUserMail_Middle"}]} <br/><br/>
+{[{ range $key, $value := .C.Changes }]}
+   <li><strong>{[{ $value }]}</strong></li>
+{[{ end }]}
+{[{.HTML "Mail_End"}]}<br/><br/>
+{[{.HTML "Automail_Disclaimer"}]}
+</body>
+</html>

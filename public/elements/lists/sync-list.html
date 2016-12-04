@@ -1,0 +1,298 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/communication-icons.html">
+<link rel="import" href="../../components/iron-icons/hardware-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../edits/sync-edit.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../controls/sync-type.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+
+<dom-module id="sync-list">
+
+    <template>
+        <carbon-route id="syncsRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+        <style include="list-styles"></style>
+        <style include="odl-styles"></style>
+        <style>
+            .list-item {
+                height: 99px;
+            }
+            .sync-disabled {
+                background-color:#DDDDDD;
+            }
+        </style>
+
+        <iron-ajax id="ajaxSyncFetcher"
+                   url="../../../syncMan"
+                   params='{ "action": "read" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}"></iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="syncs_pages"
+                             on-neon-animation-finish="_onPageChange" class="fit"
+                             selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+                             selected-item="{{selectedPage}}">
+
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" entry-animation="fade-in-animation"  exit-animation="fade-out-animation" class="lhm-tab-animation">
+                <div class="vertical layout fit">
+                    <paper-toolbar>
+                        <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                        <span class="title">Synchronisierungseinstellungen</span>
+                        <div class="horizontal layout searchBar">
+                            <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                            <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaUserBox"></paper-badge>
+                            <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                            </paper-icon-button>
+                            <paper-icon-button  icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                            </paper-icon-button>
+                        </div>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="newSyncBtn" icon="social:person-add" on-tap="_new" enabled="{{!loading}}" >+
+                        </paper-icon-button>
+
+                    </paper-toolbar>
+
+                    <div class="vertical layout flex">
+                        <paper-material elevation="2" class="vertical layout flex">
+                            <iron-selector id="synclistMenu" attr-for-selected="syncid" selected="{{selected}}">
+                                <iron-list id="syncIronList" items="{{syncs}}" as="sync" class="vertical layout fit" style="overflow:auto;">
+                                    <template>
+                                        <div class$="list-item [[_getSyncClass(sync)]]" syncid="{{sync.Id}}">
+                                            <paper-icon-item id="item_[[sync.Id]]">
+                                                <sync-type t="[[t]]" type="[[sync.Type]]" item-icon></sync-type>
+                                                <paper-item-body id="body_[[sync.Id]]">
+                                                    <div class="title">[[sync.Name]]</div>
+                                                    <span class="thin">[[t.created]]: [[getTimeString(sync.Created)]]</span>
+                                                    <span class="thin">[[t.lastSynchronized]]: [[getTimeString(sync.LastUpdate)]]</span>
+                                                    <span class="thin">[[t.nextSynchronized]]: [[getTimeString(sync.NextUpdate)]]</span>
+
+                                                </paper-item-body>
+                                                <span secondary>
+                                                     <paper-icon-button mini icon="icons:refresh" on-tap="_refresh" sync="[[sync]]" title="Jetzt synchronisieren"></paper-icon-button>
+                                                    <paper-icon-button mini icon="icons:delete" on-tap="_delete" sync="[[sync]]" title="Löschen"></paper-icon-button>
+                                                    <paper-icon-button mini icon="icons:create" on-tap="_edit" sync="[[sync]]" title="Bearbeiten"></paper-icon-button>
+                                                </span>
+                                            </paper-icon-item>
+                                        </div>
+                                    </template>
+                                </iron-list>
+                            </iron-selector>
+                        </paper-material>
+                    </div>
+
+                </div>
+            </neon-animatable>
+
+            <!-- Start page 1 / edit Sync -->
+            <neon-animatable name="edit" class="lhm-tab-animation fit scroll">
+                <sync-edit t="{{t}}" id="syncEdit" sync="{{selectedSync}}"
+                           class$="[[ifTrue(isMobile,'mobile','desktop')]]"
+                           on-created="_syncCreated"
+                           on-updated="_syncUpdated"
+                           on-deleted="_syncDeleted"
+                           on-canceled="backToList"
+                           on-back="backToList"
+                           loading="{{editLoading}}"
+                           is-mobile="[[isMobile]]"
+                ></sync-edit>
+            </neon-animatable>
+        </neon-animated-pages>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "sync-list",
+
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                syncs: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                selectedSync: {
+                    type: Object,
+                    notify: true
+                },
+                syncsById: {
+                    type: Object,
+                    notify: true,
+                    value: {}
+                },
+                trips: {
+                    type: Array,
+                    notify:true,
+                    value: []
+                },
+                map: Object,
+                t:{ type:Object,value:{} }
+            },
+            observers:[
+                "updateById(syncs.*)"
+
+            ],
+            _getSyncClass: function(sync) {
+                return ""
+            },
+            updateTripsForSync: function(event) {
+                return;
+                var result = event.detail.response;
+                var sync = event.detail.updatedObject;
+                if(sync==undefined && result.NewSync) {
+                    sync = result.NewSync;
+                    this.push("syncs", sync);
+                }
+                if(sync == undefined) {
+                    sync = this.syncsById[result.Id];
+                }
+
+                if (event.type != 'deleted') {
+                    sync.Address.GeoZones = result.GeoZones;
+                    var that = this;
+                    var eTrips = result.MatchingTripsForEndSync.split(',');
+                    var sTrips = result.MatchingTripsForStartSync.split(',');
+                    $.each(this.trips, function (key, trip) {
+                        var changed = false;
+                        var tripId = trip.Id.toString();
+                        if (sTrips.indexOf(tripId) != -1) {
+                            changed = true;
+                            trip.StartSyncId = sync.Id;
+                        }
+                        if (eTrips.indexOf(tripId) != -1) {
+                            changed = true;
+                            trip.EndSyncId = sync.Id;
+                        }
+                        if(changed) {
+                            that.fire('recalc-trip',{key:key,trip:trip});
+                        }
+                    });
+                } else {
+                    var that = this;
+                    sync.Address.GeoZones = [];
+                    $.each(this.trips, function (key, trip) {
+                        var changed = false;
+
+                        if(trip.StartSyncId == sync.Id) {
+                            changed = true;
+                            trip.StartSyncId = undefined;
+                        }
+                        if(trip.EndSyncId == sync.Id) {
+                            changed = true;
+                            trip.EndSyncId = undefined;
+                        }
+                        if(changed) {
+                            that.fire('recalc-trip',{key:key,trip:trip});
+                        }
+                    });
+                }
+            },
+            getTimeString: function(s) {
+                if(s!=undefined && s>0) {
+                    var dateFormat = "dd.MM.yyyy HH:mm:ss";
+                    return $.format.date(new Date(s * 1000), dateFormat);
+                }
+                return "-";
+            },
+            _refresh: function(event) {
+                console.log('_refresh'+this.listNameLower, event);
+                var e = event.model != null ? event.model[this._itemNameLower] : event.detail[this._itemNameLower];
+                this.selectedId= e.Id;
+                this.async(function(){
+                    this.$.syncEdit.refresh();
+                });
+
+            },
+            _syncDeleted: function(event) {
+                console.log("deleted sync");
+                this.backToList(event);
+            },
+            _syncUpdated: function(event) {
+                console.log("updated sync");
+                this.backToList(event);
+            },
+            _syncCreated: function(e) {
+                console.log("created sync");
+
+
+                this.backToList(e);
+                this.async(function(){
+                    this.set("selectedId",e.detail.updatedObject.Id);
+                    this.set("selectedSync",e.detail.updatedObject);
+                    this.async(function(){
+                        showToast(this.t.sync_Created_Refreshing);
+                        this.$.syncEdit.refresh();
+                    },500);
+                },500);
+
+
+            },
+            _syncsChanged: function(change) {
+                var that = this;
+                this.fire('resize');
+
+                console.log('synclist _syncsChanged', change);
+
+
+            },
+            sendSyncUpdatedEvent: function(sync) {
+
+            },
+            showDetails: function(event) {
+                this.selectedId = this.selectedSync.Id;
+                this.set('selectedSync.highlighted',false);
+                this.notifyAboutChange(this.selectedSync,"highlighted");
+                var sync = event.model!=null ? event.model.sync : event.detail.sync;
+                this.selectedId = sync.Id;
+                this.set('selectedSync.highlighted',true);
+                this.notifyAboutChange(this.selectedSync,"highlighted");
+                this.async(function() {
+                    this.listSelectedName="details";
+                });
+            },
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "syncs";
+                this.listNameUpper = "Syncs";
+                this.ironList = this.$$("#syncIronList");
+                this.mobileIronList = this.$$("#mobileSyncIronList");
+
+                this.fetcher = this.$.ajaxSyncFetcher;
+                this.$.ajaxSyncFetcher.generateRequest();
+            },
+            initItem: function(sync) {
+                sync.highlighted=false;
+            }
+
+        });
+    </script>
+
+</dom-module>

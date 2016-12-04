@@ -1,0 +1,120 @@
+<link rel="import" href="../../components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../edits/device-edit.html">
+<link rel="import" href="../behaviors/list-styles.html">
+
+<dom-module id="device-list-item">
+    <template>
+        <style include="odl-styles"></style>
+        <style include="list-styles"></style>
+
+        <iron-ajax id="ajaxDeviceUpdater"
+                   url="../../../deviceMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}">
+        </iron-ajax>
+
+        <div class="list-item">
+            <paper-icon-item id="item_[[device.Id]]">
+                <iron-icon icon="hardware:smartphone" style$="{{getDeviceStyle(device)}}" item-icon></iron-icon>
+                <paper-item-body id="body_[[device.Id]]">
+                    <div class="horizontal layout center">
+                        <paper-checkbox style$="{{_deviceStyle}}" checked="{{_deviceChecked}}">[[device.Description]]</paper-checkbox>
+                    </div>
+                </paper-item-body>
+            <span secondary> <color-selector selected-color="{{device.Color}}" selected-id="{{selectedColorId}}" colors="{{colors}}" colors-by-id="[[colorsById]]"></color-selector>
+            </span>
+                <span secondary hidden$="{{!showEdit}}">
+                    <paper-icon-button mini icon="icons:delete" on-tap="_deleteDevice" device="[[device]]" title="Löschen"></paper-icon-button>
+                    <paper-icon-button mini icon="icons:create" on-tap="_editDevice" device="[[device]]" title="Bearbeiten"></paper-icon-button>
+                </span>
+            </paper-icon-item>
+        </div>
+
+    </template>
+    <script>
+
+        Polymer({
+            is: "device-list-item",
+            behaviors: [OdlBehaviors.OdlEditBehavior,
+                OdlBehaviors.OdlBehavior],
+            properties: {
+                device: {
+                    type: Object,
+                    notify: true,
+                    observer:"_deviceChanged"
+                },
+                _deviceChecked: {
+                    type: Boolean,
+                    notify:true,
+                    observer:"_checkedChanged"
+                },
+                loading: {
+                    type:Boolean,
+                    value:false
+                },
+                colorsById: {
+                    type:Object,
+                    value:{}
+                },
+                selectedColorId:{
+                    type:Number,
+                    value:-1,
+                    observer:"_selectedColorIdChanged"
+                },
+                _deviceStyle:String,
+                showEdit: {
+                    type: Boolean,
+                    value:false
+                }
+            },
+            observers:["_deviceCheckedChanged(device.Checked)"],
+            getDeviceStyle: function(device) {
+                return "color:" + device.Color.Color2;
+
+            },
+            _deviceCheckedChanged: function() {
+
+                this._deviceChecked = this.device!==undefined &&this.device.Checked>0;
+            },
+            _checkedChanged : function(newVal,oldVal) {
+                if(oldVal!==undefined) {
+                    if(oldVal!=newVal) {
+                        this.device.Checked = this._deviceChecked ? 1 : -1;
+                        this.$.ajaxDeviceUpdater.body["device"]=JSON.stringify(this.device);
+                        this.$.ajaxDeviceUpdater.generateRequest();
+                        this.fire("device-checked-changed",{"device":this.device})
+                    }
+                }
+            },
+            _selectedColorIdChanged : function(newVal,oldVal) {
+                if (oldVal>0 && newVal>0 && oldVal != newVal) {
+                    this.device.Color = this.colorsById[newVal];
+                    this.$.ajaxDeviceUpdater.body["device"]=JSON.stringify(this.device);
+                    this.$.ajaxDeviceUpdater.generateRequest();
+
+                }
+            },
+            _deviceChanged:function() {
+                if(this.device!=undefined) {
+                    this.selectedColorId = this.device.Color.Id;
+                    this._deviceStyle = " --paper-checkbox-checked-device: " + this.device.Color.Color3 + ";" +
+                            "--paper-checkbox-checked-ink-color: " + this.device.Color.Color3 + ";" +
+                            "--paper-checkbox-unchecked-color: " + this.device.Color.Color1 + ";" +
+                            "--paper-checkbox-unchecked-ink-color: " + this.device.Color.Color1 + ";position:relative;";
+                }
+            },
+            _editDevice: function(event) {
+
+                this.fire('edit',{"device":this.device});
+            },
+            _deleteDevice: function(event) {
+                this.fire('delete',{"device":this.device});
+            }
+        });
+    </script>
+</dom-module>
+

@@ -1,0 +1,117 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../../components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../../components/neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../controls/trip-type.html">
+<link rel="import" href="../odl/odl-theme.html">
+<dom-module id="contact-detail">
+
+
+
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            #contactCardContent {
+                width: 100%;
+                background-color: #fafafa;
+            }
+
+            #contactCardContent paper-material {
+                width: 100%;
+                background-color: #fafafa;
+            }
+
+            #cc_delete {
+                position: absolute;
+                top: -21px;
+                right: 76px;
+            }
+            #cc_edit {
+                position: absolute;
+                top: -28px;
+                right: 16px;
+            }
+        </style>
+        <div class="vertical layout">
+            <paper-toolbar>
+                <paper-icon-button id="contactCard_back" icon="arrow-back" title="zurück zur Kontaktliste" on-tap="_cancel" >
+                </paper-icon-button>
+                <div>
+                    <iron-icon icon="social:person"></iron-icon>
+                    <span class="title">[[contact.Title]]</span>
+                    <paper-spinner id="spin" alt="updating contact on server"></paper-spinner>
+                </div>
+            </paper-toolbar>
+
+            <paper-material id="contactCardContent" elevation="2">
+                <paper-fab id="cc_delete" icon="icons:delete" on-tap="_delete" mini title="Löschen"></paper-fab>
+                <paper-fab id="cc_edit" icon="editor:mode-edit" on-tap="_edit" title="Bearbeiten"></paper-fab>
+                <div>
+                    <trip-type type="[[contact.TripType]]" label></trip-type>
+                    <!-- <span class="thin" style="float:right;"> Id: <span>[[contact.Id]]</span></span> -->
+                </div>
+                <paper-material class="flex">
+                    <div id="ContactDetailAddress" class="ContactAddress">
+                        <span class="thin">[[contact.Address.Postal]]</span> <span class="medium">[[contact.Address.City]]</span> <br />
+                        <span>[[contact.Address.Street]]</span> <span>[[contact.Address.HouseNumber]]</span>
+                    </div>
+                    <paper-icon-button icon="room" title="Auf Karte zentrieren" name="ZoomToAddr" on-tap="_centerOnMap"></paper-icon-button>
+                </paper-material>
+                <paper-material elevation="1" class="flex">
+                    <iron-icon icon="icons:description" title="Beschreibung"></iron-icon>[[contact.Description]]</paper-material>
+                <!-- <paper-material elevation="1" class="flex">
+                <iron-icon icon="notification:event-note"></iron-icon>[[contact.Additional]]</paper-material> -->
+            </paper-material>
+        </div>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "contact-detail",
+            properties: {
+                contact: {
+                    type: Object,
+                    notify: true
+                }
+            },
+            _edit: function(event) {
+                this.fire('request-edit', {
+                    item: event.target,
+                    contact: this.contact,
+                    desc: "Kontakt " + this.contact.Title,
+                    type: "contact"
+                });
+            },
+            _delete: function(event) {
+                this.fire('request-delete', {
+                    item: event.target,
+                    contact: this.contact,
+                    desc: "Kontakt " + this.contact.Title,
+                    type: "contact"
+                });
+            },
+            _cancel: function(event) {
+                this.fire("canceled",{updatedObject:this.contact});
+            },
+            _centerOnMap: function(event) {
+                if(map) {
+                    map.setView([contact.Address.Latitude,contact.Address.Longitude]);
+                }
+            }
+
+        });
+    </script>
+
+</dom-module>

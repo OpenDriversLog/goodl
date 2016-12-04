@@ -1,0 +1,158 @@
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../dialogs/device-time-select.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-menu/paper-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<dom-module id="device-time-dropdown">
+
+    <template>
+
+        <style include="odl-styles">
+            .supersmall {
+                width:0px;
+                height:0px;
+                overflow:hidden;
+            }
+        </style>
+
+        <paper-dialog id="timeselect"  auto-fit-on-attach no-cancel-on-outside-click no-cancel-on-esc-key always-on-top role="dialog" tabindex="-1" aria-modal="true" aria-hidden="false">
+            <div class="modal-content">
+                <device-time-select id="deviceTimeSelect"
+                                    colors="[[colors]]" colors-by-id="[[colorsById]]"
+                                    min-time="{{minTime}}" max-time="{{maxTime}}"
+                                    cur-start="{{curStart}}" cur-end="{{curEnd}}" devices="{{devices}}" devices-by-id="{{devicesById}}"></device-time-select>
+
+            </div>
+            <div class="buttons">
+                <paper-button dialog-dismiss>Abbrechen</paper-button>
+                <paper-button on-tap="confirm" dialog-confirm autofocus>OK</paper-button>
+            </div>
+        </paper-dialog>
+
+        <div on-tap="_openTimeDropdown" class$="clickable [[ifTrue(isMobile,'mobile',desktop)]]">
+            <paper-icon-button icon="alarm" style="padding-right:5px;"></paper-icon-button>
+            <div>
+                <div id="timeDiv" hidden$="[[small]]">
+                    <span>[[getTimeString(minTime)]]</span> <span style="padding-left: 0.75em; padding-right:0.75em;">-</span> <span>[[getTimeString(maxTime)]]</span>
+                </div>
+                <div class="supersmall">
+                    <paper-dropdown-menu id="timeDropdown">
+                        <paper-menu id="timeDropdownInner" class="dropdown-content">
+                            <paper-item on-tap="_selectCurMonth">
+                                Aktueller Monat
+                            </paper-item>
+                            <paper-item on-tap="_selectPrevMonth">
+                                Vorheriger Monat
+                            </paper-item>
+                            <paper-item on-tap="_selectCurYear">
+                                Aktuelles Jahr
+                            </paper-item>
+                            <paper-item on-tap="_selectPrevYear">
+                                Letztes Jahr
+                            </paper-item>
+                            <paper-item  on-tap="_openTimeSelector">
+                                Anderer Zeitraum
+                            </paper-item>
+                        </paper-menu>
+                    </paper-dropdown-menu>
+                </div>
+            </div>
+        </div>
+
+
+
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "device-time-dropdown",
+            properties: {
+                minTime: Number,
+                maxTime: Number,
+                curStart: {type: Date, notify:true},
+                curEnd: {type: Date, notify:true},
+                endDateString: {type:String, notify:true},
+                startDateString: {type:String, notify:true},
+                internalEnd: {type: Date, observer:"_endIntChanged"},
+                internalStart: {type: Date, observer:"_startIntChanged"},
+                devices: {
+                    type: Array,
+                    notify: true
+                },
+                colors : {
+                    type: Array,
+                    notify: true,
+                    value: []
+                },
+                colorsById: {
+                    type: Object,
+                    value:{}
+                },
+                devicesById: {
+                    type: Object,
+                    notify: true,
+                    value: {}
+                },
+                isMobile:Boolean
+            },
+            ifTrue: function(isTrue,True,False) {
+                if(isTrue)  return True;
+                return False;
+            },
+            _openTimeSelector: function() {
+                this.$.timeselect.open();
+                this.async(function () {
+                    $.each(
+                            this.$.timeselect.querySelectorAll('iron-list'), function () {
+                                this._render();
+                            });
+                });
+            },
+            getTimeString: function(ms) {
+                var dateFormat = "dd.MM.yyyy";
+                return $.format.date(new Date(ms), dateFormat);
+            },
+            _selectCurMonth: function() {
+                var d = new Date();
+
+                this.curStart = new Date(d.getFullYear(), d.getMonth(),1);
+                this.curEnd = new Date(new Date(d.getFullYear(), d.getMonth()+1)-1);
+                this._closeTimeDropdown();
+            },
+            _selectCurYear: function() {
+                var d = new Date();
+
+                this.curStart = new Date(d.getFullYear(), 0,1);
+                this.curEnd = new Date(d.getFullYear(), 11,31,23,59,59,999);
+                this._closeTimeDropdown();
+            },
+            _selectPrevMonth: function() {
+                var d = new Date();
+
+                this.curStart = new Date(d.getFullYear(), d.getMonth()-1,1);
+                this.curEnd = new Date(new Date(d.getFullYear(), d.getMonth())-1);
+                this._closeTimeDropdown();
+            },
+            _selectPrevYear: function() {
+                var d = new Date();
+                this.curStart = new Date(d.getFullYear()-1, 0,1);
+                this.curEnd = new Date(d.getFullYear()-1, 11,31,23,59,59,999);
+                this._closeTimeDropdown();
+            },
+            _openTimeDropdown: function() {
+                this.$.timeDropdown.open();
+            },
+            _closeTimeDropdown: function() {
+                this.$.timeDropdown.close();
+            },
+            confirm:function() {
+                this.$.deviceTimeSelect.confirm();
+            }
+        });
+    </script>
+
+</dom-module>

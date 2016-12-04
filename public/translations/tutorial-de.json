@@ -1,0 +1,38 @@
+{
+  "openLhmTut":"Bitte öffnen Sie die Verwaltungszentrale, um die Einführung zu starten.",
+  "openLhmCars":"Bitte öffnen Sie die Verwaltungszentrale, um Fahrzeuge zu verwalten.",
+  "openLhmDevices":"Bitte öffnen Sie die Verwaltungszentrale, um Geräte zu verwalten.",
+  "openLhmDrivers":"Bitte öffnen Sie die Verwaltungszentrale, um Fahrer zu verwalten.",
+  "openLhmContacts":"Bitte öffnen Sie die Verwaltungszentrale, um Ihre Kontakte zu verwalten.",
+  "openLhmImport":"Bitte öffnen Sie die Verwaltungszentrale, um Ihre Synchronisierungseinstellungen zu verwalten.",
+  "openContacts1":"Gut - hier können Sie alle für das Fahrtenbuch relevanten Daten einsehen & bearbeiten. Wir werden nun die grundlegenden Einstellungen gemeinsam vornehmen. Bitte öffnen Sie zunächst die Kontakt-Verwaltung.",
+  "createContact1":"Bitte erstellen Sie Ihren Arbeitsplatz als neuen Kontakt.",
+  "createContact2":"Bitte vervollständigen & speichern Sie Ihren Arbeitsplatz. Bitte achten Sie darauf, als Kontakt-Typ \"Arbeitsweg\" auszuwählen. Durch diese Information sind wir in der Lage, automatische Fahrtengründe zu berechnen. Durch einen Klick auf die Lupe über einem Adressfeld können Sie übrigens eine Address-Suche durchführen.",
+  "importContacts1":"Wenn Sie möchten, können Sie nun Kontakte aus einem anderen Addressbuch (derzeit Google/Android-Kontakte) importieren. Wenn nicht, klicken Sie auf ",
+  "skip":"überspringen",
+  "importContacts2":"Bitte erstellen Sie eine neue Synchronisation.",
+  "importContacts3":"Bitte wählen Sie als Synchronisationstyp \"Google\" an - die Beschreibung können Sie unverändert lassen oder anpassen.
+  Nach einem Klick auf \"Speichern\" werden Sie gebeten sich zu authentifizieren und die Synchronisierung beginnt.
+  Es werden alle Kontakt importiert, für die eine Adresse hinterlegt ist - Adressen die als \"Büro\" oder \"Andere\" definiert
+  sind, werden als geschäftliche Kontakte gespeichert. Alle anderen werden als privat markiert - diese Kategorisierung
+  können Sie im Nachhinein über die Kontaktverwaltung bearbeiten, oder unerwünschte Kontakte löschen.",
+  "openDrivers0":"Sehr gut! Ihre Kontakte werden nun synchronisiert
+  - mit dieser Applikation gelöschte Kontakte werden allerdings nicht erneut angelegt. Sie können durch betätigen des \"Aktualisieren\"-Knopfes
+  neben der Synchronisierung eine schnellere Aktualisierung ausführen. Um fortzufahren, öffnen Sie die Fahrer-Verwaltung.",
+  "openDrivers1":"Sehr gut! Bitte öffnen Sie nun die Fahrer-Verwaltung.",
+  "createDriver1":"Nun legen Sie bitte sich als Fahrer an.",
+  "createDriver2":"Bitte vervollständigen & speichern Sie Ihre Fahrerdaten.",
+  "openCars1":"Die Hälfte haben Sie geschafft - nun müssen Sie nur noch ein Fahrzeug anlegen & ihr Gerät mit
+  OpenDriversLog verknüpfen.",
+  "createCar1":"Bitte erstellen Sie ein neues Fahrzeug.",
+  "createCar2":"Bitte geben Sie Ihr Kennzeichen ein (z.B. \"FG-CS 621\"),
+  setzen Sie den Fahrzeugtyp (z.B. \"VW Passat CC\") und stellen Sie sich selbst,
+  oder einen neuen Fahrer, als primären Fahrzeugführer ein.",
+  "openDevices1":"Jetzt befinden Sie sich in einer Sackgasse - Das Gerät einrichten geht noch nicht.",
+  "tutorialIntroduction":"Herzlich willkommen & vielen Dank dass Sie sich für unser Produkt entschieden haben!
+  Wir werden Sie nun kurz durch unsere Benutzeroberfläche führen und die initiale Konfiguration vornehmen. Bitte folgen Sie den Anweisungen in der Box unten rechts - für die Ausführung der Aufgaben erforderliche Bedienelemente werden rot markiert. Bei Problemen können Sie uns über den \"Fehler melden\"-Knopf in der linken Navigationsleiste eine Nachricht zukommen lassen. Viel Erfolg wünscht Ihnen Ihr OpenDriversLog-Team.",
+  "disableTutorial":"Tutorial deaktivieren.",
+  "cutTrack":"Zusammenführen mit dieser Strecke rückgängig machen.",
+  "undoMerge":"Zusammenführen rückgängig machen."
+
+}

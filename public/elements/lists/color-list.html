@@ -1,0 +1,69 @@
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+<dom-module id="color-list">
+    <template>
+        <style include="odl-styles"></style>
+        <iron-ajax id="ajaxColorFetcher"
+                   url="../../../colorMan"
+                   params='{ "action": "read", "colors": "1" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+    </template>
+
+    <script>
+        Polymer({
+            is: "color-list",
+            behaviors: [
+                OdlBehaviors.OdlListBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            properties: {
+                colors: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                colorsById: {
+                    type: Object,
+                    notify: true,
+                    value: {}
+                }
+            },
+            observers:[
+                "updateById(colors.*)"
+            ],
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "colors";
+                this.listNameUpper = "Colors";
+
+                this.fetcher = this.$.ajaxColorFetcher;
+                this.$.ajaxColorFetcher.generateRequest();
+            }
+
+        });
+    </script>
+
+</dom-module>

@@ -1,0 +1,14 @@
+{
+  "uploadSuccess": "Daten erfolgreich importiert.",
+  "uploadFail": "Failed.",
+  "No key provided for uploadData":"Bitte einen Key angeben. Echt jetzt!",
+  "upload_title":"Daten importieren",
+  "upload_type":"Art der Daten",
+  "upload_dataFormat":"Art der Daten",
+  "upload_data":"Daten",
+  "upload_add":"Hinzufügen",
+  "upload_key":"Gerät",
+  "upload_dyk":"<p>Dieser Bereich ermöglicht es Ihnen verschiedene andere Datenquellen in unser System einzubinden. Sie mögen es bisher nicht gewusst haben, aber Unternehmen wie Google oder Apple verfolgen Sie seit längerem auf Schritt und Tritt. Wir wollen diese Daten nutzen um Ihnen Ihr Fahrtenbuch so angenehm wie möglich zu gestalten. Falls Sie also diese Daten in unser System importieren wollen, können Sie das hier tun.</p>",
+  "helpText_upload":"Hier können Sie Daten aus verschiedenen Quellen importieren. Derzeit dürfte Ihnen das ganze spanisch vorkommen - wir arbeiten daran, hier für Sie hilfreiche Funktionen bereitzustellen.",
+  "Please_select_device":"Bitte wählen Sie ein Gerät aus!"
+}

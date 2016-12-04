@@ -1,0 +1,176 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+<link rel="import" href="../../components/neon-animation/neon-animation-runner-behavior.html">
+<link rel="import" href="../edits/user-edit.html">
+<link rel="import" href="../behaviors/odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../../components/neon-animation/neon-animated-pages.html">
+<link rel="import" href="../../components/carbon-route/carbon-route.html">
+<link rel="import" href="../behaviors/list-styles.html">
+
+
+<dom-module id="user-list">
+
+
+
+    <template>
+        <carbon-route id="usersRoute" data="{{routeParams}}" route="{{route}}" pattern="/:listSelectedName/:selectedId"></carbon-route>
+        <style include="list-styles"></style>
+        <style include="odl-styles"></style>
+
+        <iron-ajax id="ajaxUserFetcher"
+                   url="../../../userMan"
+                   params='{ "action": "read" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation" id="users_pages" on-neon-animation-finish="_onPageChange" class="fit"
+                             on-neon-animation-finish="_onPageChange" class="fit"
+                             selected="{{_getSelectedName(routeParams.listSelectedName)}}"
+                             attr-for-selected="name"
+                             selected-item="{{selectedPage}}">
+            <!-- Start page 0 / list -->
+            <neon-animatable name="list" class="lhm-tab-animation">
+                <div class="userList vertical layout fit">
+                    <paper-toolbar>
+                        <paper-icon-button id="toggleDrawer" icon="menu" on-tap="toggleDrawer"></paper-icon-button>
+                        <span class="title">Nutzer</span>
+                        <div class="horizontal layout searchBar">
+                            <paper-input label="Suche" on-keydown="_searchBoxKeyDown" id="searchBox" value="{{searchValue}}"></paper-input>
+                            <paper-badge class="searchBadge" label="[[curSearchResLen]]" for="searchBetaUserBox"></paper-badge>
+                            <paper-icon-button icon="icons:arrow-upward" title="Vorheriges Suchergebnis" on-tap="_prevSearch" >
+                            </paper-icon-button>
+                            <paper-icon-button  icon="icons:arrow-downward" title="Nächstes Suchergebnis" on-tap="_nextSearch" >
+                            </paper-icon-button>
+                        </div>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="newUserBtn" icon="icons:add-circle" title="neues Nutzer" on-tap="_new" >+
+                        </paper-icon-button>
+                    </paper-toolbar>
+
+                    <paper-material elevation="2" class="vertical layout flex">
+                        <iron-selector id="userlistMenu" attr-for-selected="userid" selected="{{selected}}">
+                            <iron-list id="userIronList" items="{{users}}" as="user" class="vertical layout fit">
+                                <template>
+                                    <div class="list-item" userid="{{user.Id}}">
+                                        <paper-icon-item id="item_[[user.Id]]">
+                                            <iron-icon icon="accessibility" title="Nutzer" item-icon></iron-icon>
+                                            <paper-item-body id="body_[[user.Id]]" >
+                                                <div class="title">[[user.FirstName]] [[user.LastName]]</div>
+                                                <div class="thin">[[user.LoginName]]</div>
+                                            </paper-item-body>
+                                            <span secondary>
+                                                <paper-icon-button mini icon="icons:delete" on-tap="_delete" user="[[user]]" title="Löschen"></paper-icon-button>
+                                                <paper-icon-button mini icon="icons:create" on-tap="_edit" user="[[user]]" title="Bearbeiten"></paper-icon-button>
+                                            </span>
+                                        </paper-icon-item>
+
+                                    </div>
+                                </template>
+                            </iron-list>
+                        </iron-selector>
+                    </paper-material>
+
+                </div>
+            </neon-animatable>
+            <!-- Start page 1 / edit User -->
+            <neon-animatable name="edit" class="lhm-tab-animation">
+                <user-edit
+                        class$="[[ifTrue(isMobile,'mobile','desktop')]]"
+                        t="[[t]]"
+                        admin-mode="{{adminMode}}"
+                        loading="{{editLoading}}"
+                        id="userEdit"
+                        user="{{selectedUser}}"
+                        on-back="backToList"
+                        on-deleted="backToList"
+                        on-canceled="backToList"
+                        on-created="backToList"
+                        on-updated="backToList"
+                ></user-edit>
+            </neon-animatable>
+        </neon-animated-pages>
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "user-list",
+
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior,
+                Polymer.NeonAnimationRunnerBehavior,
+                OdlBehaviors.OdlBehavior
+            ],
+            /* https://www.polymer-project.org/1.0/docs/devguide/registering-elements.html#custom-constructor */
+            properties: {
+                users: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                usersById: {
+                    type: Object,
+                    value: {},
+                    notify:true
+                },
+                selectedUser: {
+                    type: Object,
+                    notify: true
+                },
+                selected: {
+                    type: String,
+                    observer: '_selectedChanged',
+                    notify: true
+                },
+                t:{ type:Object,value:{} },
+                adminMode: {
+                    type:Boolean,
+                    value:false
+                }
+
+            },
+            observers:[
+                "updateById(users.*)"
+            ],
+            _selectedChanged: function(newValue, oldValue) {
+                var idx = this.getIdxFromId(this.selected,this.users);
+                this.fire('users-clicked', {
+                    user: this.users[idx]
+                });
+            },
+
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "users";
+                this.listNameUpper = "Users";
+                this.fetcher = this.$.ajaxUserFetcher;
+                this.ironList = this.$$("#userIronList");
+                this.mobileIronList = this.$$("#mobileUserIronList");
+
+                this.$.ajaxUserFetcher.generateRequest();
+
+            }
+
+        });
+    </script>
+
+</dom-module>

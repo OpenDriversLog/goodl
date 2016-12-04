@@ -1,0 +1,145 @@
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/social-icons.html">
+<link rel="import" href="../../components/iron-icons/notification-icons.html">
+<link rel="import" href="../../components/iron-icons/editor-icons.html">
+<link rel="import" href="../../components/iron-form/iron-form.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-input/paper-input.html">
+<link rel="import" href="../../components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+
+<link rel="import" href="address-edit.html">
+<link rel="import" href="../behaviors/odl-editbehavior.html">
+<link rel="import" href="../dialogs/delete-dialog.html">
+<link rel="import" href="../dialogs/notsaved-dialog.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../behaviors/edit-styles.html">
+
+<dom-module id="driver-edit">
+
+    <template>
+
+        <style include="odl-styles"></style>
+        <style include="edit-styles"></style>
+
+
+        <delete-dialog id="deleteDialog"></delete-dialog>
+        <notsaved-dialog id="notsavedDialog"></notsaved-dialog>
+
+        <iron-ajax id="ajaxDriverDeleter"
+                   url="../../../driverMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "delete" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxDriverCreator"
+                   url="../../../driverMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "create" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <iron-ajax id="ajaxDriverUpdater"
+                   url="../../../driverMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "update" }' ,
+                   method="POST"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{loading}}"></iron-ajax>
+
+        <div id="driverEdit" class="vertical layout fit">
+
+            <paper-toolbar>
+                <paper-icon-button id="driverCard_back" icon="arrow-back" title="zurück zur Fahrerübersicht" on-tap="back">
+                </paper-icon-button>
+                <div class="title">Fahrer bearbeiten</div>
+                <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                <paper-icon-button id="cancelButton" icon="icons:cancel" on-tap="cancelEdit" title="Abbrechen" disabled="[[cancelDisabled]]"></paper-icon-button>
+                <paper-icon-button id="saveButton" icon="icons:save" on-tap="saveEdit" title="Speichern" disabled="[[saveDisabled]]"></paper-icon-button>
+            </paper-toolbar>
+
+            <paper-material id="driverEdit" class="edit_padding">
+                <div style="overflow:auto;">
+                    <form is="iron-form" id="formEditDriver" method="POST">
+                        <paper-input id="driverPriority" name="priority" auto-validate="true" pattern="[0-9]{1,2}$"  required label="Priorität(1-99)" type="number" value="{{internalDriver.Priority}}"></paper-input>
+                        <paper-input id="driverName" name="name" required label="Name" type="text" value="{{internalDriver.Name}}"></paper-input>
+                        <paper-input id="driverAdditional" name="additional" label="Kommentar" type="text" value="{{internalDriver.Additional}}"></paper-input>
+                        <paper-material>
+                            <address-edit class$="[[ifTrue(isMobile,'mobile','desktop')]]" hide-old-contacts="[[hideOldContacts]]" on-contact-copy="_copyContact" contacts="{{contacts}}" contacts-by-id="{{contactsById}}" id="adrEdit" address="{{internalDriver.Address}}"></address-edit>
+                        </paper-material>
+                    </form>
+                </div>
+            </paper-material>
+        </div>
+    </template>
+    <script>
+
+        Polymer({
+            is: "driver-edit",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+            properties: {
+                driver: {
+                    type: Object,
+                    notify: true,
+                    value: {},
+                    observer: "_dtoChanged"
+                },
+                internalDriver: {
+                    type: Object,
+                    notify:true,
+                    value: {}
+                },contacts: {
+                    type:Array,
+                    value:[]
+                },
+                contactsById: {
+                    type:Object,
+                    value:{}
+                },
+                hideOldContacts: Boolean
+            },
+            getItemDesc: function(driver) {
+                var s = "Fahrer " + this.getValString(driver.Name);
+                if(driver.Address) {
+                    s += " (" + getAddressHTML(driver.Address,true,true) +")"
+                }
+                return s;
+            },
+            getNew: function() {
+                return {
+                    "Id": -1,
+                    "Priority": 3,
+                    "Address":this.$.adrEdit.getNewAddress(),
+                    "Name":"",
+                    "Additional":""
+                };
+            },
+            ready: function() {
+                /* ODLEditBehavior fields - order is important! */
+                this.lowerDtoName = "driver";
+                this.upperDtoName = "Driver";
+                this.ajaxDeleter = this.$.ajaxDriverDeleter;
+                this.ajaxCreator = this.$.ajaxDriverCreator;
+                this.ajaxUpdater = this.$.ajaxDriverUpdater;
+
+            },
+            polish: function(driver) {
+                if(driver.Priority)
+                    driver.Priority = Number(driver.Priority);
+                return driver;
+            },
+            _copyContact : function(e) {
+                if(e.detail && e.detail.Title && !this.internalDriver.Name) {
+                    this.set("internalDriver.Name",e.detail.Title);
+                }
+            }
+        });
+    </script>
+</dom-module>

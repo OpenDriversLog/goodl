@@ -1,0 +1,100 @@
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/iron-icons/communication-icons.html">
+<link rel="import" href="../../components/iron-icons/av-icons.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../odl/odl-theme.html">
+<dom-module id="trip-type">
+
+
+
+    <template>
+        <style include="odl-styles"></style>
+        <style>
+            .tripType-private {
+                margin: 3px;
+                background: #ffb300;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            .tripType-commute {
+                margin: 3px;
+                background: #81d4fa;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            .tripType-business {
+                margin: 3px;
+                background: #ce93d8;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            .tripType-home {
+                margin: 3px;
+                background: #81c784;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            paper-material {
+                padding: 5px;
+            }
+
+        </style>
+        <span id="tripType-1" class="type-1 tripType-private" style="display: none"><iron-icon icon="icons:home" title="Privat"></iron-icon>
+            <span hidden$="{{!label}}">Privat</span>
+        </span>
+        <span id="tripType-2" class="type-2 tripType-commute" style="display: none"><iron-icon icon="icons:swap-horiz" title="Arbeitsweg"></iron-icon>
+                <span hidden$="{{!label}}">Arbeitsweg</span>
+        </span>
+        <span id="tripType-3" class="type-3 tripType-business" style="display: none"><iron-icon icon="card-travel"  title="Dienstlich"></iron-icon>
+                <span hidden$="{{!label}}">Dienstlich</span>
+        </span>
+        <span id="tripType-4" class="type-4 tripType-home" style="display: none"><iron-icon icon="maps:hotel" title="Wohnort"></iron-icon>
+                <span hidden$="{{!label}}">Wohnort</span>
+        </span>
+
+    </template>
+
+    <script>
+
+        Polymer({
+            is: "trip-type",
+
+            properties: {
+                type: {
+                    type: Number,
+                    observer: '_typeChanged',
+                    notify: true
+                },
+                label: {
+                    type: Boolean,
+                    value: false,
+                }
+            },
+
+            create: function() {
+                // access a local DOM element by ID using this.$
+            },
+
+            ready: function() {
+                // access a local DOM element by ID using this.$
+                this.type = 1;
+                /* console.log('element trip-type created...', this.type); */
+            },
+
+            _typeChanged: function() {
+                for (var i = 1; i <= 4; i++) {
+                    if (this.type === i ) {
+                        var str = '#tripType-'+i;
+                        this.$$(str).setAttribute('style', 'display: inline');
+                    } else {
+                        var str = '#tripType-'+i;
+                        this.$$(str).setAttribute('style', 'display: none');
+                    }
+                };
+                /* console.log('element: trip-type update', this.type); */
+            },
+
+        });
+    </script>
+
+</dom-module>

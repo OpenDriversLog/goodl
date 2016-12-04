@@ -1,0 +1,6 @@
+tests/acceptance/userDb.db
+userDb.db
+tests/acceptance/uploads/
+uploads/*
+/userDb.db
+/upload

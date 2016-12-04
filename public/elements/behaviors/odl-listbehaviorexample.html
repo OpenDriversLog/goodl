@@ -1,0 +1,214 @@
+
+
+
+
+<!-- TODO : UPDATE WITH NEW ROUTING CONCEPTS!!!! For now use car-list as example--->
+
+
+
+
+
+
+
+<link rel="import" href="../../components/iron-input/iron-input.html">
+<link rel="import" href="../../components/iron-icons/iron-icons.html">
+<link rel="import" href="../../components/iron-icons/maps-icons.html">
+<link rel="import" href="../../components/iron-list/iron-list.html">
+<link rel="import" href="../../components/paper-button/paper-button.html">
+<link rel="import" href="../../components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../components/paper-fab/paper-fab.html">
+<link rel="import" href="../../components/paper-material/paper-material.html">
+<link rel="import" href="../../components/paper-item/paper-item.html">
+<link rel="import" href="../../components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../components/paper-item/paper-item-body.html">
+<link rel="import" href="../../components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../components/paper-styles/paper-styles.html">
+<link rel="import" href="../../components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../../components/paper-tooltip/paper-tooltip.html">
+<link rel="import" href="../../components/neon-animation/neon-animations.html">
+<link rel="import" href="../../components/neon-animation/neon-animatable-behavior.html">
+
+<link rel="import" href="../edits/contact-edit.html">
+<link rel="import" href="../details/contact-detail.html">
+<link rel="import" href="odl-listbehavior.html">
+<link rel="import" href="../odl/odl-theme.html">
+
+<dom-module id="contact-list">
+
+    <template>
+
+        <style include="odl-styles"></style>
+        <style>
+            paper-material {
+                width: 99%;
+            }
+            .list-item {
+                height: 70px;
+            }
+        </style>
+
+        <iron-ajax id="ajaxContactFetcher"
+                   url="../../adrMan"
+                   content-type="application/x-www-form-urlencoded" body='{ "action": "read", "contacts": "1" }' ,
+                   method="GET"
+                   handle-as="json"
+                   debounce-duration="300"
+                   loading="{{ajaxLoading}}">
+        </iron-ajax>
+
+        <neon-animated-pages entry-animation="fade-in-animation" exit-animation="fade-out-animation"  on-neon-animation-finish="_onPageChange" id="contacts_pages" class="flex" selected="{{selectedPage}}">
+
+            <!-- Start page 0 / list -->
+            <neon-animatable exit-animation="scale-down-animation">
+                <div class="vertical layout flex">
+                    <paper-toolbar>
+                        <span class="title">Kontakte</span>
+                        <paper-spinner id="spin" active="{{loading}}" alt="Synchronisiere Daten..."></paper-spinner>
+                        <paper-icon-button id="newContactBtn" icon="social:person-add" on-tap="_newContact" >+
+                        </paper-icon-button>
+                    </paper-toolbar>
+
+                    <div class="vertical layout flex">
+                        <paper-material elevation="2" class="vertical layout flex">
+                            <iron-selector id="contactlistMenu" attr-for-selected="contactid" selected="{{selected}}">
+                                <iron-list id="contactIronList" items="{{contacts}}" as="contact" class="vertical layout flex">
+                                    <template>
+                                        <div class="list-item" contactid="{{contact.Id}}">
+                                            <paper-icon-item>
+                                                <trip-type type="[[contact.TripType]]" item-icon></trip-type>
+                                                <paper-item-body on-tap="showDetails">
+                                                    <div class="title">[[contact.Title]]</div>
+                                                    <span class="thin"><span>[[contact.Address.Postal]]</span> <span>[[contact.Address.City]]</span></span>
+                                                    <span class="thin"><span>[[contact.Address.Street]]</span> <span>[[contact.Address.HouseNumber]]</span></span>
+                                                </paper-item-body>
+                                                <span secondary>
+                                                    <paper-icon-button mini icon="icons:delete" on-tap="_deleteContact" contact="[[contact]]" title="Löschen"></paper-icon-button>
+                                                    <paper-icon-button mini icon="icons:create" on-tap="_editContact" contact="[[contact]]" title="Bearbeiten"></paper-icon-button>
+                                                </span>
+                                            </paper-icon-item>
+                                        </div>
+                                    </template>
+                                </iron-list>
+                            </iron-selector>
+                        </paper-material>
+                    </div>
+
+                </div>
+            </neon-animatable>
+            <!-- Start page 1 / edit Contact -->
+            <neon-animatable>
+                <contact-edit loading="{{editLoading}}" id="contactEdit" contact="{{selectedContact}}" on-back="backToList" on-deleted="backToList" on-canceled="backToList" on-created="backToList" on-updated="backToList"></contact-edit>
+            </neon-animatable>
+            <!-- Start page 2 / Contact detail -->
+            <neon-animatable entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+                <contact-detail loading="{{detailLoading}}" on-request-delete="_deleteContact" on-request-edit="_editContact" id="contactDetail" contact="{{selectedContact}}" on-canceled="backToList"></contact-detail>
+            </neon-animatable>
+        </neon-animated-pages>
+    </template>
+
+    <script>
+        Polymer({
+            is: "contact-list",
+            behaviors: [
+                Polymer.NeonAnimatableBehavior,
+                OdlBehaviors.OdlListBehavior
+            ],
+            properties: {
+                contacts: {
+                    type: Array,
+                    notify: true,
+                    value: function() {
+                        return [];
+                    }
+                },
+                selectedContact: {
+                    type: Object,
+                    notify: true
+                },
+                selected: {
+                    type: String,
+                    observer: '_selectedChanged',
+                    notify: true
+                },/**,
+                 observers:[
+
+                 If you want an "by id"-map, uncomment this.
+                 "updateById(contacts.*)"
+                 ],
+                 contactsById: {
+                    type: Object,
+                    notify: true,
+                    value: {}
+                }
+                 */
+
+
+            },
+            animationConfig: {
+                type: Object,
+                value: function() {
+                    return {
+                        'entry': [{
+                            name: 'fade-in-animation',
+                            node: this.$.contactList
+                        }],
+                        'exit': [{
+                            name: 'fade-out-animation',
+                            node: this.$.contactList
+                        }, {
+                            name: 'hero-animation',
+                            id: 'hero',
+                            fromPage: this
+                        }]
+                    };
+                }
+            },
+            /**
+             * Currently not used, but might be useful for future stuff
+             */
+            _selectedChanged: function(newValue, oldValue) {
+                var idx = this.getIdxFromId(this.selected,this.contacts);
+                this.fire('contacts-clicked', {
+                    contact: this.contacts[idx]
+                });
+            },
+            _newContact: function(event) {
+                this.selectedContact = this.$.contactEdit.getNew();
+                this.async(function(){
+                    this.selectedPage = 1;
+                });
+            },
+            _editContact: function(event) {
+                this.selectedContact = event.model!=null ? event.model.contact : event.detail.contact;
+                this.async(function(){
+                    this.selectedPage = 1;
+                });
+            },
+            showDetails: function(event) {
+                this.selectedContact = event.model.contact;
+                this.async(function(){
+                    this.selectedPage = 2;
+                });
+            },
+            _deleteContact: function(event) {
+                this.selectedContact = event.model!=null ? event.model.contact : event.detail.contact;
+                // important : Go to page with edit-control!
+                this.selectedPage = 1;
+                this.async(function(){
+                    this.$.contactEdit.delete();
+                });
+            },
+            ready: function() {
+                /** Elements for ODLListBehaviour**/
+                this.listNameLower = "contacts";
+                this.listNameUpper = "Contacts";
+                this.ironList = this.$$("#contactIronList");
+                this.mobileIronList = this.$$("#mobileContactIronList");
+                this.fetcher = this.$.ajaxContactFetcher;
+                this.$.ajaxContactFetcher.generateRequest();
+            }
+
+        });
+    </script>
+
+</dom-module>

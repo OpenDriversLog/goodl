@@ -1,0 +1,37 @@
+<link rel="import" href="../../components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../odl/odl-theme.html">
+<link rel="import" href="../edits/device-edit.html">
+<dom-module id="disabled-checkbox">
+
+
+
+    <template>
+        <style include="odl-styles"></style>
+        <paper-checkbox id="cb" style$="{{_deviceStyle}}" disabled checked="{{_checked}}">"<content></content>"</paper-checkbox>
+    </template>
+    <script>
+
+        Polymer({
+            is: "disabled-checkbox",
+            behaviors: [OdlBehaviors.OdlEditBehavior],
+            properties: {
+                checked: {
+                    type:Boolean,
+                    value:false,
+                    observer:'_checkedChanged'
+                },
+                _checked: {
+                    type:Boolean,
+                    value:false
+                }
+            },
+            _checkedChanged : function(newVal,oldVal) {
+                this.$.cb.disabled=false;
+                this._checked = this.checked;
+                this.async(function(){
+                    this.$.cb.disabled=true;
+                });
+            }
+        });
+    </script>
+</dom-module>

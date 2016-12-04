@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    {[{if .Data.BASEURL}]}
+    <BASE href="{[{.Data.BASEURL}]}">
+    {[{end}]}
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <script type="text/javascript" src="./public/components/jquery/dist/jquery.min.js"></script>
+
+    <script src='./public/components/webcomponentsjs/webcomponents-lite.min.js'></script>
+
+
+    <!-- default scripts start -->
+    <script type="text/javascript" src="./public/js/default.js"></script>
+    <!-- default scripts end -->
+    <!-- Polymer elements start -->
+    <link rel="import" href="./public/elements/odl/odl-main.html">
+    <!-- Polymer elements end -->
+
+    <!--  Android 5 Chrome Color -->
+    <meta name="theme-color" content="#01579b"/>
+    <title>Fahrtentracker - WebApp</title>
+    <!-- {[{if .Debug}]} !!DEBUGGING!! {[{end}]} -->
+</head>
+<body class="fullbleed vertical layout">
+Lade Daten...
+<template is="dom-bind" id="app" on-device-changed="">
+    <odl-main id="odl" class="fit">
+    </odl-main>
+    <input type="hidden" id="CSRFToken">{[{.Data.CSRFToken}]}</input>
+</template>
+<script type="text/javascript">
+    {[{if .Data.User}]}
+    var userData = {[{.Data.User}]};
+    initUser(userData);
+    {[{end}]}
+    var timeLoad = 0;
+    {[{if .Data.TimeLoad }]}
+    timeLoad = {[{.Data.TimeLoad}]};
+    {[{end}]}
+
+    /* sth copied from
+     https://github.com/PolymerElements/polymer-starter-kit/blob/master/app/index.html
+     */
+
+    // Grab a reference to our auto-binding template
+    // and give it some initial binding values
+    // Learn more about auto-binding templates at http://goo.gl/Dx1u2g
+    var app = document.querySelector('#app');
+    var odl = undefined;
+    app.displayInstalledToast = function() {
+        // Check to make sure caching is actually enabled—it won't be in the dev environment.
+        if (!Polymer.dom(document).querySelector('platinum-sw-cache').disabled) {
+            Polymer.dom(document).querySelector('#caching-complete').show();
+        }
+    };
+
+    // Listen for template bound event to know when bindings
+    // have resolved and content has been stamped to the page
+    appReady(app,function() {
+        odl = this.$.odl;
+
+        if(userData)
+            odl.user = userData;
+        {[{if .WarningMessage}]}
+        showWarning({[{.WarningMessage}]});
+        window.history.pushState(undefined, document.title, document.location.href.replace(/&?warningMessage=([^&]$|[^&].+?((?=(#|$|&))))/i, ""));
+        {[{end}]}
+        {[{if .ErrorMessage}]}
+        showError({[{.ErrorMessage}]});
+        window.history.pushState(undefined, document.title, document.location.href.replace(/&?errorMessage=([^&]$|[^&].+?((?=(#|$|&))))/i, ""));
+        {[{end}]}
+        {[{if .StatusMessage}]}
+        showStatus({[{.StatusMessage}]});
+        window.history.pushState(undefined, document.title, document.location.href.replace(/&?statusMessage=([^&]$|[^&].+?((?=(#|$|&))))/i, ""));
+        {[{end}]}
+
+    });
+
+    // See https://github.com/Polymer/polymer/issues/1381
+    window.addEventListener('WebComponentsReady', function() {
+        // imports are loaded and elements have been registered
+        console.log('WebComponentsReady');
+        initDefault(app);
+    });
+</script>
+</body>
+
+</html>

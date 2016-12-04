@@ -1,0 +1,31 @@
+#!/bin/bash
+set -e
+
+HTTP_PORT=${HTTP_PORT:-":4000"}
+GITLAB_URL=${GITLAB_URL:-"http://YOURGITLABURL"}
+SMTP_HOST=${SMTP_HOST:-"mail.opendriverslog.de"}
+SMTP_PORT=${SMTP_PORT:-587}
+
+# is a redis container linked?
+if [ -n "${REDIS_PORT_6379_TCP_ADDR}" ]; then
+  REDIS_HOST=${REDIS_HOST:-${REDIS_PORT_6379_TCP_ADDR}}
+  REDIS_PORT=${REDIS_PORT:-${REDIS_PORT_6379_TCP_PORT}}
+fi
+
+# fallback to default redis port
+REDIS_PORT=${REDIS_PORT:-6379}
+
+if [ -z "${REDIS_HOST}" ]; then
+  echo "ERROR: "
+  echo "  Please configure the redis connection."
+  echo "  Refer http://git.io/PMnRSw for more information."
+  echo "  Cannot continue without a redis connection. Aborting..."
+  exit 1
+fi
+
+echo "Redis Host: "${REDIS_HOST}":"${REDIS_PORT_6379_TCP_PORT}
+echo "Http PORT: "${HTTP_PORT}
+
+echo "run the project... "
+cd /app
+./goodl

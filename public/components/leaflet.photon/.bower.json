@@ -1,0 +1,27 @@
+{
+  "name": "leaflet.photon",
+  "main": "leaflet.photon.js",
+  "version": "0.7.0",
+  "homepage": "https://github.com/komoot/leaflet.photon",
+  "authors": [
+    "Yohan Boniface"
+  ],
+  "description": "Leaflet plugin to interact with Photon geocoder",
+  "license": "Apache V2",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "_release": "0.7.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "0.7.0",
+    "commit": "c86873b88e58ee25803d05f3b79e03508cd3e45e"
+  },
+  "_source": "git://github.com/komoot/leaflet.photon.git",
+  "_target": "~0.7.0",
+  "_originalSource": "leaflet.photon"
+}

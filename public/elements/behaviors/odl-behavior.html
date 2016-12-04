@@ -1,0 +1,107 @@
+
+<script>
+    var OdlBehaviors = OdlBehaviors || {};
+    var htmlSpanCnt = 0;
+    /**
+     * Behavior for mostly ODL-pages - has methods for routing, helpText & dynamic translations and a helper method for rendering iron-lists
+     */
+    OdlBehaviors.OdlBehavior = {
+        properties: {
+            lang:{type:String, value:"",observer:"refreshT"},
+            t: {
+                type:Object,
+                value:{}
+            },
+            helpText: {
+                type:String,
+                computed:"getHelpText(t)"
+            },
+            name:{
+                type:String,
+                value:""
+            },
+            route: {type:Object, notify: true},
+            isMobile: Boolean
+        },
+        ifTrue: function(isTrue,True,False) {
+            if(isTrue)  return True;
+            return False;
+        },
+        attached:function() {
+            this.refreshT();
+        },
+        urlFor: function(pathOrName, params) {
+            var lhmPages = ["trips","contacts","cars","drivers","devices","syncs"];
+            if(lhmPages.indexOf(pathOrName)!==-1) {
+                pathOrName = "lhm/"+pathOrName;
+            }
+
+            if(params) $.each(params,function(k,v){
+                pathOrName += "/" + encodeURIComponent(v);
+            });
+            return "javascript:setRoute('/"+pathOrName+"');";
+            //return MoreRouting.urlFor(pathOrName, params)
+        },
+        getHelpText:function() {
+            if(this.t && this.t.helpText) {
+                return this.t.helpText;
+            } else {
+                return "Unknown";
+            }
+        },
+        _localeReady: function(e) {
+            if(e.detail.locale==this.lang) {
+                this.refreshT(e.detail.domain);
+            }
+        },
+        refreshT: function(domain) {
+            if(!domain) {
+                this.refreshT("default");
+                var that=this;
+                $.each(this.querySelectorAll("i18-n-domain"),function(i,v){
+                    if(v.domain) {
+                        that.refreshT(v.domain);
+                    }
+                });
+                return;
+            }
+            if (domain!=="default" && window.I18nCache.domains["default"].locales[this.lang]==undefined) {
+                var that = this;
+                window.setTimeout(function(){that.refreshT(domain)},500);
+            }
+            var t;
+            if(window.I18nCache && window.I18nCache.domains && window.I18nCache.domains[domain] &&
+                    window.I18nCache.domains[domain].locales[this.lang]) {
+                if(this.t==undefined || $.isEmptyObject(this.t)) {
+                    t = window.I18nCache.domains[domain].locales[this.lang];
+                    if(domain!=="default" && window.I18nCache.domains["default"].locales[this.lang]) {
+                        for (var attrname in window.I18nCache.domains["default"].locales[this.lang]) {
+                            t[attrname]= window.I18nCache.domains["default"].locales[this.lang][attrname];
+                        }
+                    }
+                }
+                else {
+                    t = this.t;
+                    for (var attrname in window.I18nCache.domains[domain].locales[this.lang]) {
+                        t[attrname]= window.I18nCache.domains[domain].locales[this.lang][attrname];
+                    }
+                }
+            }
+            if(t) {
+                this.set("t",{});
+                this.set("t",t);
+            }
+            if(this._onTranslationUpdate && typeof(this._onTranslationUpdate=="function")&&this.t) {
+                this._onTranslationUpdate(this.t);
+            }
+        },
+        renderLists:function(){
+            var lists = this.querySelectorAll("iron-list");
+            this.async(function() {
+                for(i=0;i<lists.length;i++) {
+                    lists[i].fire("iron-resize");
+                }
+            });
+        }
+    }
+</script>

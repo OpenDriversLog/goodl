@@ -1,0 +1,44 @@
+<dom-module id="address-helper">
+    <template>
+    </template>
+
+    <script>
+        /**
+         * if 2nd parameter is true, postal is not returned
+         */
+
+        function formatAddress (address,short) {
+            var s = "";
+            if (address !== undefined) {
+                if (address.Street !== undefined && address.Street.length > 0) {
+                    s += address.Street;
+                }
+                if (address.HouseNumber !== undefined && address.HouseNumber.length > 0) {
+                    s += " " + address.HouseNumber;
+                }
+                s += (short?", ":(", " + address.Postal + " ") )+ address.City;
+                if(odl.user && odl.user.Level==1337)
+                    s += " (" + address.GeoCoder +")";
+            }
+            return s;
+        }
+        function formatTime(ms, short) {
+            var dateFormat = "E dd.MM.yyyy HH:mm";
+            var timeFormat = "HH:mm";
+            var s = "";
+
+            if (ms !== undefined) {
+                if (short) {
+                    s += $.format.date(new Date(ms), timeFormat);
+                } else {
+                    s += $.format.date(new Date(ms), dateFormat);
+                }
+            }
+            return s;
+        }
+    </script>
+
+</dom-module>
+
+
+

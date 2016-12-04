@@ -1,0 +1,29 @@
+{[{define "key"}]}defaultHybrid{[{end}]}
+{[{define "head"}]}
+<link rel="import" href="./public/bundledImports/defaultHybrid.html">
+{[{end}]}
+{[{define "title"}]}
+{[{.T.T "someTitle"}]}
+{[{end}]}
+{[{define "navItems"}]}{[{end}]}
+{[{define "helpText"}]}
+Die Hilfe für diese Seite fehlt - bitte kontaktieren Sie uns, damit wir das schnellstmöglich beheben. Danke!
+{[{end}]}
+{[{define "content"}]}
+<div>Put html code here (already in body)</div>
+{[{if .Data.Message}]}
+<!-- thats how you access a variable in the data-map and check if it exists before -->
+{[{.Data.Message}]}
+<br/><a href="./defaultHybrid?ajax=1">Go to ajax data</a>
+{[{end}]}
+<!-- include javascript code here -->
+
+{[{end}]}
+
+{[{define "bottomBody"}]}
+<script type="text/javascript">
+    appReady(app,function() {
+        alert (" Javascript is working.");
+        // Put your ajax request here
+    });
+</script>{[{end}]}
